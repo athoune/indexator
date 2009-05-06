@@ -1,6 +1,9 @@
 import marshal
 import zlib
 
+class WrongSizeException(Exception):
+	pass
+
 class BitSet:
 	_data = 0L
 	_size = 0
@@ -15,7 +18,8 @@ class BitSet:
 	def __str__(self):
 		return "<Bitset #%i %s>" % (self._size, str(bin(self._data))[2:])
 	def __and__(self, other):
-		pass
+		if len(other) != len(self):
+			raise WrongSizeException
 	def __len__(self):
 		return self._size
 	def value(self):
@@ -29,6 +33,12 @@ if __name__ == '__main__':
 		def testInit(self):
 			self.assert_(3, len(self.b))
 			self.assert_(6L, self.b.value())
+		def testSizeError(self):
+			try:
+				self.b & BitSet([True])
+				self.assert_(False)
+			except WrongSizeException:
+				self.assert_(True)
 		def testDump(self):
 			self.assert_("<Bitset #3 110>" == str(self.b))
 	unittest.main()
