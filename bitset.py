@@ -1,5 +1,6 @@
 import marshal
 import zlib
+import math
 
 class WrongSizeException(Exception):
 	pass
@@ -7,12 +8,13 @@ class WrongSizeException(Exception):
 class BitSet:
 	_data = 0L
 	_size = 0
+	_minsize = 1024
 	def __init__(self, value = None, size= 0):
 		if type(value) == type(1L):
 			self._data = value
 			try:
 				self._size = size or math.floor(math.log(self._data, 2)) + 1
-			except Exception:
+			except Exception as e:
 				self._size = 0
 			return
 		if value != None:
@@ -48,7 +50,7 @@ class BitSet:
 			b._data = self._data | other._data
 			return b
 	def __len__(self):
-		return self._size
+		return int(self._size)
 	def __eq__(self, other):
 		return self._data == other._data
 	def value(self):
@@ -56,19 +58,29 @@ class BitSet:
 	def __neg__(self):
 		return BitSet((2**self._size - 1) ^ self._data )
 	def dump(self, file):
+		file.seek(0)
 		file.write(marshal.dumps(self._size)[1:])
-		file.write(marshal.dumps(self._data)[1:])
+		if self._size > self._minsize:
+			file.write('z')
+			file.write(zlib.compress(marshal.dumps(self._data)[1:]))
+		else:
+			file.write('n')
+			file.write(marshal.dumps(self._data)[1:])
 		file.flush()
 
 def load(file):
 	file.seek(0)
 	size =  marshal.loads('i' + file.read(4))
-	value = marshal.loads('l' + file.read())
+	if 'z' == file.read(1) :
+		value = marshal.loads('l' + zlib.decompress(file.read()))
+	else:
+		value = marshal.loads('l' + file.read())
 	return BitSet(value, size)
 
 if __name__ == '__main__':
 	import unittest
 	import tempfile
+	import StringIO
 	class SimpleTest(unittest.TestCase):
 		def setUp(self):
 			self.b = BitSet([True, True, False])
@@ -99,4 +111,16 @@ if __name__ == '__main__':
 			with tempfile.TemporaryFile() as f:
 				self.b.dump(f)
 				self.assert_(self.b, load(f))
+		def testSize(self):
+			b = BitSet(6L)
+			self.assert_(3, len(b))
+			b = BitSet(2**4096)
+			self.assert_(4096, len(b))
+			
+		def testComress(self):
+			b = BitSet(2**2048 + 1, 2048)
+			with tempfile.TemporaryFile() as f:
+				b.dump(f)
+				self.assert_(b, load(f))
+
 	unittest.main()
