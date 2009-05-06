@@ -8,8 +8,9 @@ class BitSet:
 	_data = 0L
 	_size = 0
 	def __init__(self,array):
-		for element in array:
-			self.append(element)
+		if array != None:
+			for element in array:
+				self.append(element)
 	def append(self, elem):
 		if elem :
 			a = 1
@@ -29,7 +30,16 @@ class BitSet:
 			raise WrongSizeException
 	def __and__(self, other):
 		self._testSize(other)
-		pass
+		b = BitSet(None)
+		b._size = self._size
+		b._data = self._data & other._data
+		return b
+	def __or__(self, other):
+			self._testSize(other)
+			b = BitSet(None)
+			b._size = self._size
+			b._data = self._data | other._data
+			return b
 	def __len__(self):
 		return self._size
 	def value(self):
@@ -55,4 +65,8 @@ if __name__ == '__main__':
 			self.assert_(False == self.b.pop())
 			self.assert_(2, len(self.b))
 			self.assert_(BitSet([True,True]), self.b)
+		def testAnd(self):
+			self.assert_(BitSet([True, False, False ]), self.b & BitSet([True,False,True]))
+		def testOr(self):
+			self.assert_(BitSet([True, True, True]), self.b | BitSet([True,False,True]))
 	unittest.main()
