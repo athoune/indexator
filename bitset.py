@@ -7,11 +7,13 @@ class WrongSizeException(Exception):
 class BitSet:
 	_data = 0L
 	_size = 0
-	def __init__(self, value = None):
+	def __init__(self, value = None, size= 0):
 		if type(value) == type(1L):
 			self._data = value
-			try: self._size = math.floor(math.log(self._data, 2)) + 1
-			except Exception: self._size = 0
+			try:
+				self._size = size or math.floor(math.log(self._data, 2)) + 1
+			except Exception:
+				self._size = 0
 			return
 		if value != None:
 			for element in value:
@@ -54,15 +56,19 @@ class BitSet:
 	def __neg__(self):
 		return BitSet((2**self._size - 1) ^ self._data )
 	def dump(self, file):
-		marshal.dump(self._data, file)
+		file.write(marshal.dumps(self._size)[1:])
+		file.write(marshal.dumps(self._data)[1:])
+		file.flush()
 
 def load(file):
-	b = BitSet()
-	b.setLong(marshal.load(file))
-	return b
+	file.seek(0)
+	size =  marshal.loads('i' + file.read(4))
+	value = marshal.loads('l' + file.read())
+	return BitSet(value, size)
 
 if __name__ == '__main__':
 	import unittest
+	import tempfile
 	class SimpleTest(unittest.TestCase):
 		def setUp(self):
 			self.b = BitSet([True, True, False])
@@ -89,4 +95,8 @@ if __name__ == '__main__':
 			self.assert_(BitSet([True, True, False]) == BitSet(6L))
 		def testNeg(self):
 			self.assert_((-self.b) == BitSet(1L))
+		def testDump(self):
+			with tempfile.TemporaryFile() as f:
+				self.b.dump(f)
+				self.assert_(self.b, load(f))
 	unittest.main()
