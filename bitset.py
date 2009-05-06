@@ -51,6 +51,8 @@ class BitSet:
 		return self._data == other._data
 	def value(self):
 		return self._data
+	def __neg__(self):
+		return BitSet((2**self._size - 1) ^ self._data )
 	def dump(self, file):
 		marshal.dump(self._data, file)
 
@@ -85,4 +87,6 @@ if __name__ == '__main__':
 			self.assert_(BitSet([True, True, True]), self.b | BitSet([True,False,True]))
 		def testLong(self):
 			self.assert_(BitSet([True, True, False]) == BitSet(6L))
+		def testNeg(self):
+			self.assert_((-self.b) == BitSet(1L))
 	unittest.main()
