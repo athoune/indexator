@@ -17,11 +17,19 @@ class BitSet:
 			a = 0
 		self._data = (self._data << 1) | a
 		self._size += 1
+	def pop(self):
+		ret = self._data & 1
+		self._data << 1
+		self._size -= 1
+		return ret
 	def __str__(self):
 		return "<Bitset #%i %s>" % (self._size, str(bin(self._data))[2:])
-	def __and__(self, other):
+	def _testSize(self,other):
 		if len(other) != len(self):
 			raise WrongSizeException
+	def __and__(self, other):
+		self._testSize(other)
+		pass
 	def __len__(self):
 		return self._size
 	def value(self):
@@ -43,4 +51,8 @@ if __name__ == '__main__':
 				self.assert_(True)
 		def testDump(self):
 			self.assert_("<Bitset #3 110>" == str(self.b))
+		def testPop(self):
+			self.assert_(False == self.b.pop())
+			self.assert_(2, len(self.b))
+			self.assert_(BitSet([True,True]), self.b)
 	unittest.main()
