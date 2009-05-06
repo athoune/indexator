@@ -3,13 +3,18 @@ import zlib
 
 class WrongSizeException(Exception):
 	pass
-
+# http://code.activestate.com/recipes/576738/
 class BitSet:
 	_data = 0L
 	_size = 0
-	def __init__(self,array):
-		if array != None:
-			for element in array:
+	def __init__(self, value = None):
+		if type(value) == type(1L):
+			self._data = value
+			try: self._size = math.floor(math.log(self._data, 2)) + 1
+			except Exception: self._size = 0
+			return
+		if value != None:
+			for element in value:
 				self.append(element)
 	def append(self, elem):
 		if elem :
@@ -30,20 +35,29 @@ class BitSet:
 			raise WrongSizeException
 	def __and__(self, other):
 		self._testSize(other)
-		b = BitSet(None)
+		b = BitSet()
 		b._size = self._size
 		b._data = self._data & other._data
 		return b
 	def __or__(self, other):
 			self._testSize(other)
-			b = BitSet(None)
+			b = BitSet()
 			b._size = self._size
 			b._data = self._data | other._data
 			return b
 	def __len__(self):
 		return self._size
+	def __eq__(self, other):
+		return self._data == other._data
 	def value(self):
 		return self._data
+	def dump(self, file):
+		marshal.dump(self._data, file)
+
+def load(file):
+	b = BitSet()
+	b.setLong(marshal.load(file))
+	return b
 
 if __name__ == '__main__':
 	import unittest
@@ -69,4 +83,6 @@ if __name__ == '__main__':
 			self.assert_(BitSet([True, False, False ]), self.b & BitSet([True,False,True]))
 		def testOr(self):
 			self.assert_(BitSet([True, True, True]), self.b | BitSet([True,False,True]))
+		def testLong(self):
+			self.assert_(BitSet([True, True, False]) == BitSet(6L))
 	unittest.main()
