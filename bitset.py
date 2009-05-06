@@ -9,12 +9,14 @@ class BitSet:
 	_size = 0
 	def __init__(self,array):
 		for element in array:
-			if element :
-				a = 1
-			else:
-				a = 0
-			self._data = (self._data << 1) | a
-			self._size += 1
+			self.append(element)
+	def append(self, elem):
+		if elem :
+			a = 1
+		else:
+			a = 0
+		self._data = (self._data << 1) | a
+		self._size += 1
 	def __str__(self):
 		return "<Bitset #%i %s>" % (self._size, str(bin(self._data))[2:])
 	def __and__(self, other):
