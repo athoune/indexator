@@ -10,6 +10,8 @@ class BitSet:
 	_size = 0
 	_minsize = 1024
 	def __init__(self, value = None, size= 0):
+		if type(value) == type(1):
+			value = long(value)
 		if type(value) == type(1L):
 			self._data = value
 			try:
@@ -33,7 +35,9 @@ class BitSet:
 		self._size -= 1
 		return ret
 	def __str__(self):
-		return "<Bitset #%i %s>" % (self._size, str(bin(self._data))[2:])
+		b = str(bin(self._data))[2:]
+		b = '0' * int(self._size - len(b)) + b
+		return "<Bitset #%i %s>" % (self._size, b)
 	def _testSize(self,other):
 		if len(other) != len(self):
 			raise WrongSizeException
@@ -44,11 +48,11 @@ class BitSet:
 		b._data = self._data & other._data
 		return b
 	def __or__(self, other):
-			self._testSize(other)
-			b = BitSet()
-			b._size = self._size
-			b._data = self._data | other._data
-			return b
+		self._testSize(other)
+		b = BitSet()
+		b._size = self._size
+		b._data = self._data | other._data
+		return b
 	def __len__(self):
 		return int(self._size)
 	def __eq__(self, other):
@@ -56,10 +60,10 @@ class BitSet:
 	def value(self):
 		return self._data
 	def __neg__(self):
-		return BitSet((2**self._size - 1) ^ self._data )
+		return BitSet(long(2**self._size - 1) ^ self._data, len(self) )
 	def dump(self, file):
 		file.seek(0)
-		file.write(marshal.dumps(self._size)[1:])
+		file.write(marshal.dumps(int(self._size))[1:])
 		if self._size > self._minsize:
 			file.write('z')
 			file.write(zlib.compress(marshal.dumps(self._data)[1:]))
@@ -116,11 +120,18 @@ if __name__ == '__main__':
 			self.assert_(3, len(b))
 			b = BitSet(2**4096)
 			self.assert_(4096, len(b))
-			
 		def testComress(self):
-			b = BitSet(2**2048 + 1, 2048)
-			with tempfile.TemporaryFile() as f:
-				b.dump(f)
-				self.assert_(b, load(f))
+			b = BitSet(2**8 +1)
+			out = file('/tmp/toto.dump','w+') #StringIO.StringIO()
+			b.dump(out)
+			self.assert_(b, load(out))
+		def testNeg(self):
+			b = BitSet(9L)
+			n = -b
+			self.assert_(-n == b)
+		def _testLarge(self):
+			b = BitSet(2**1000)
+			n = -b
+			self.assert_(-n == b)
 
 	unittest.main()
