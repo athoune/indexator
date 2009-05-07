@@ -122,7 +122,7 @@ if __name__ == '__main__':
 			self.assert_(4096, len(b))
 		def testComress(self):
 			b = BitSet(2**8 +1)
-			out = file('/tmp/toto.dump','w+') #StringIO.StringIO()
+			out = StringIO.StringIO()
 			b.dump(out)
 			self.assert_(b, load(out))
 		def testNeg(self):
