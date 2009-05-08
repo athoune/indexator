@@ -5,6 +5,46 @@ import math
 class WrongSizeException(Exception):
 	pass
 # http://code.activestate.com/recipes/576738/
+
+class MBitSet:
+	_data = []
+	_size = 0
+	_word = 128
+	def __init__(self, data = []):
+		for a in data:
+			self.append(a)
+	def append(self, bool):
+		if bool: a = 1
+		else:    a = 0
+		self._size += 1
+		if self._data == []:
+			self._data = [a]
+			return
+		last = self._data[-1]
+		if (self._size -1) % self._word == 0:
+			self._data.append(0)
+			last = a
+		else :
+			last = (last << 1) | a
+		self._data[-1] = last
+	def __repr__(self):
+		r = "<MbitSet #%i " % self._size
+		for i in self._data:
+			n = bin(i)[2:]
+			r += "\n" + (self._word - len(n)) * "0" + n
+		return  r + ">"
+	def __len__(self):
+		return int(self._size)
+	def __eq__(self, other):
+		return self._data == other._data
+	def __neg__(self):
+		b = MBitSet()
+		b._size = self._size
+		b._data = []
+		for i in self._data:
+			b._data.append(long(2**self._word - 1) ^ i)
+		return b
+
 class BitSet:
 	_data = 0L
 	_size = 0
@@ -60,7 +100,7 @@ class BitSet:
 	def value(self):
 		return self._data
 	def __neg__(self):
-		return BitSet(long(2**self._size - 1) ^ self._data, len(self) )
+		return BitSet(long(2L**self._size - 1) ^ self._data, len(self) )
 	def dump(self, file):
 		file.seek(0)
 		file.write(marshal.dumps(int(self._size))[1:])
@@ -129,9 +169,24 @@ if __name__ == '__main__':
 			b = BitSet(9L)
 			n = -b
 			self.assert_(-n == b)
-		def _testLarge(self):
-			b = BitSet(2**1000)
-			n = -b
-			self.assert_(-n == b)
+		def testLarge(self):
+			for a in range(6):
+				b = BitSet(2**(2**a) + 3)
+				#print a, 2**a, len(b)
+				n = -b
+				#print n, b
+				self.assert_(-n == b)
+	class MTest(unittest.TestCase):
+		def setUp(self):
+			self.b = MBitSet([True, True, False])
+		def testAppend(self):
+			b = MBitSet()
+			for aa in range(40000):
+				for a in range(256):
+					b.append(True)
+			c = -b
+			#print b, c
+			print len(b)
+			self.assert_(-c == b)
 
 	unittest.main()
