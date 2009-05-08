@@ -44,6 +44,13 @@ class MBitSet:
 		for i in self._data:
 			b._data.append(long(2**self._word - 1) ^ i)
 		return b
+	def cardinality(self):
+		total = 0
+		for i in self._data:
+			while i > 1:
+				if i & 1 == 1 : total += 1
+				i = i >> 1
+		return total
 
 class BitSet:
 	_data = 0L
@@ -181,12 +188,14 @@ if __name__ == '__main__':
 			self.b = MBitSet([True, True, False])
 		def testAppend(self):
 			b = MBitSet()
-			for aa in range(40000):
+			for aa in range(4000):
 				for a in range(256):
 					b.append(True)
 			c = -b
 			#print b, c
 			print len(b)
 			self.assert_(-c == b)
+		def testCardinality(self):
+			self.assert_(2, self.b.cardinality())
 
 	unittest.main()
