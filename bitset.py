@@ -47,10 +47,28 @@ class MBitSet:
 	def cardinality(self):
 		total = 0
 		for i in self._data:
-			while i > 1:
-				if i & 1 == 1 : total += 1
-				i = i >> 1
+			total += cached_cardinality(i)
 		return total
+
+def cardinality(i):
+	total = 0
+	while i > 1:
+		if i & 1 == 1 : total += 1
+		i = i >> 1
+	return total
+
+cc = None
+def cached_cardinality(i):
+	global cc
+	if cc == None:
+		cc = {}
+		for a in range(256):
+			cc[a] = cardinality(a)
+	total = 0
+	while i > 255:
+		total += cc[i & 255]
+		i = i >> 8
+	return total
 
 class BitSet:
 	_data = 0L
