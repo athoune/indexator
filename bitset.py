@@ -300,10 +300,10 @@ if __name__ == '__main__':
 				b.dump(out)
 				self.assert_(b, mload(out))
 		def testIter(self):
-			b = MBitSet([True, True, True, False])
+			b = random(42)
 			tas = []
 			for a in b:
 				tas.append(a)
-			self.assert_([True, True, True, False], tas)
+			self.assert_(b, MBitSet(tas))
 
 	unittest.main()
