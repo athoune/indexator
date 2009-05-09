@@ -133,8 +133,10 @@ def cached_cardinality(i):
 		i = i >> 8
 	return total
 
-
 def load(file):
+	"""
+	Load a BitSet from a file
+	"""
 	file.seek(0)
 	b = empty(struct.unpack('l', file.read(4)))
 	if 'z' == file.read(1) :
@@ -146,7 +148,6 @@ def load(file):
 
 if __name__ == '__main__':
 	import unittest
-	import tempfile
 	import StringIO
 	class BitSetTest(unittest.TestCase):
 		def setUp(self):

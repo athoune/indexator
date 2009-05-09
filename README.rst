@@ -1,10 +1,8 @@
 Indexator
 =========
 
-Indexator is a powerful index for quick search.
-
-Ingredients
-===========
+Indexator is a powerful index for quick search. Data is stored in a simple DB, like gdbm, berkelyDB or Tokyo cabinet, with a specific index format.
+Indexator doesn't handle well delete, but it's very efficient for selecting and counting. Its primary target is log analysis.
 
 BitSet
 ------
