@@ -1,6 +1,8 @@
 import marshal
 import zlib
 import math
+import random as _random
+import struct
 
 class WrongSizeException(Exception):
 	pass
@@ -12,10 +14,19 @@ def empty(size=0):
 	b._size = size
 	return b
 
+def random(n=1):
+	_random.seed()
+	b = empty()
+	b._size = n * b._WORD
+	for a in range(n):
+		b._data.append(_random.getrandbits(b._WORD))
+	return b
+
 class MBitSet:
 	_data = []
 	_size = 0
-	_word = 128
+	_WORD = 128
+	_ZSIZE = 1024
 	def __init__(self, data = []):
 		for a in data:
 			self.append(a)
@@ -27,7 +38,7 @@ class MBitSet:
 			self._data = [a]
 			return
 		last = self._data[-1]
-		if (self._size -1) % self._word == 0:
+		if (self._size -1) % self._WORD == 0:
 			self._data.append(0)
 			last = a
 		else :
@@ -37,7 +48,7 @@ class MBitSet:
 		r = "<MbitSet #%i " % self._size
 		for i in self._data:
 			n = bin(i)[2:]
-			r += "\n" + (self._word - len(n)) * "0" + n
+			r += "\n" + (self._WORD - len(n)) * "0" + n
 		return  r + ">"
 	def __len__(self):
 		return int(self._size)
@@ -63,13 +74,28 @@ class MBitSet:
 		b._size = self._size
 		b._data = []
 		for i in self._data:
-			b._data.append(long(2**self._word - 1) ^ i)
+			b._data.append(long(2**self._WORD - 1) ^ i)
 		return b
 	def cardinality(self):
 		total = 0
 		for i in self._data:
 			total += cached_cardinality(i)
 		return total
+	def dump(self, file):
+		file.seek(0)
+		file.write(struct.pack('l', self._size))
+		d = marshal.dumps(self._data)[1:]
+		if self._size > self._ZSIZE:
+			file.write('z')
+			z = zlib.compress(d)
+			file.write(z)
+			t = 1.0 * len(z) / len(d)
+		else:
+			file.write('n')
+			file.write(d)
+			t = 1
+		file.flush()
+		return t
 
 def cardinality(i):
 	total = 0
@@ -78,16 +104,16 @@ def cardinality(i):
 		i = i >> 1
 	return total
 
-cc = None
+_cc = None
 def cached_cardinality(i):
-	global cc
-	if cc == None:
-		cc = {}
+	global _cc
+	if _cc == None:
+		_cc = {}
 		for a in range(256):
-			cc[a] = cardinality(a)
+			_cc[a] = cardinality(a)
 	total = 0
 	while i > 255:
-		total += cc[i & 255]
+		total += _cc[i & 255]
 		i = i >> 8
 	return total
 
@@ -166,6 +192,15 @@ def load(file):
 	else:
 		value = marshal.loads('l' + file.read())
 	return BitSet(value, size)
+def mload(file):
+	file.seek(0)
+	b = empty(struct.unpack('l', file.read(4)))
+	if 'z' == file.read(1) :
+		d = zlib.decompress(file.read())
+	else:
+		d = file.read()
+	b._data = marshal.loads('[' + d)
+	return b
 
 if __name__ == '__main__':
 	import unittest
@@ -232,7 +267,7 @@ if __name__ == '__main__':
 					b.append(True)
 			c = -b
 			#print b, c
-			print len(b)
+			#print len(b)
 			self.assert_(-c == b)
 		def testCardinality(self):
 			self.assert_(2, self.b.cardinality())
@@ -242,5 +277,15 @@ if __name__ == '__main__':
 			self.assert_(MBitSet([True, True, True]), self.b | MBitSet([True,False,True]))
 		def testXor(self):
 			self.assert_(MBitSet([False, True, True]), self.b ^ MBitSet([True,False,True]))
+		def testDump(self):
+			out = StringIO.StringIO()
+			self.b.dump(out)
+			self.assert_(self.b, mload(out))
+		def testCompression(self):
+			for a in range(8):
+				out = StringIO.StringIO()
+				b = random(2**a)
+				b.dump(out)
+				self.assert_(b, mload(out))
 
 	unittest.main()
