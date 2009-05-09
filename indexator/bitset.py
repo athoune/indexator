@@ -1,8 +1,14 @@
+__doc__ = """
+"""
+__author__ = "Mathieu Lecarme <mathieu@garambrogne.net>"
+
 import marshal
 import zlib
 import math
 import random as _random
 import struct
+
+__all__ = ['empty', 'Bitset', 'load']
 
 class WrongSizeException(Exception):
 	pass
