@@ -6,6 +6,12 @@ class WrongSizeException(Exception):
 	pass
 # http://code.activestate.com/recipes/576738/
 
+def empty(size=0):
+	b = MBitSet()
+	b._data = []
+	b._size = size
+	return b
+
 class MBitSet:
 	_data = []
 	_size = 0
@@ -37,6 +43,21 @@ class MBitSet:
 		return int(self._size)
 	def __eq__(self, other):
 		return self._data == other._data
+	def __and__(self, other):
+		b = empty(self._size)
+		for i in range(len(self._data)):
+			b._data.append(other._data[i] & self._data[i])
+		return b
+	def __or__(self, other):
+		b = empty(self._size)
+		for i in range(len(self._data)):
+			b._data.append(other._data[i] | self._data[i])
+		return b
+	def __xor__(self, other):
+		b = empty(self._size)
+		for i in range(len(self._data)):
+			b._data.append(other._data[i] ^ self._data[i])
+		return b
 	def __neg__(self):
 		b = MBitSet()
 		b._size = self._size
@@ -215,5 +236,11 @@ if __name__ == '__main__':
 			self.assert_(-c == b)
 		def testCardinality(self):
 			self.assert_(2, self.b.cardinality())
+		def testAnd(self):
+			self.assert_(MBitSet([True, False, False ]), self.b & MBitSet([True,False,True]))
+		def testOr(self):
+			self.assert_(MBitSet([True, True, True]), self.b | MBitSet([True,False,True]))
+		def testXor(self):
+			self.assert_(MBitSet([False, True, True]), self.b ^ MBitSet([True,False,True]))
 
 	unittest.main()
