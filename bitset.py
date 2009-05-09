@@ -31,8 +31,7 @@ class MBitSet:
 		for a in data:
 			self.append(a)
 	def append(self, bool):
-		if bool: a = 1
-		else:    a = 0
+		a = int(bool)
 		self._size += 1
 		if self._data == []:
 			self._data = [a]
@@ -50,6 +49,19 @@ class MBitSet:
 			n = bin(i)[2:]
 			r += "\n" + (self._WORD - len(n)) * "0" + n
 		return  r + ">"
+	def __str__(self):
+		r = ''
+		for i in self._data:
+			n = bin(i)[2:]
+			r += (self._WORD - len(n)) * "0" + n
+		return r
+	def __getitem__(self, s):
+		start, stop, step = s.indices(len(self))
+	def __iter__(self):
+		for a in range(len(self)):
+			w = self._data[a // self._WORD]
+			aa = (len(self) - a -1) % self._WORD
+			yield bool(w  & (1 << aa))
 	def __len__(self):
 		return int(self._size)
 	def __eq__(self, other):
@@ -287,5 +299,11 @@ if __name__ == '__main__':
 				b = random(2**a)
 				b.dump(out)
 				self.assert_(b, mload(out))
+		def testIter(self):
+			b = MBitSet([True, True, True, False])
+			tas = []
+			for a in b:
+				tas.append(a)
+			self.assert_([True, True, True, False], tas)
 
 	unittest.main()
