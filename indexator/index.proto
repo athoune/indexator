@@ -1,0 +1,11 @@
+package indexator;
+
+message Index {
+	required int32 size = 1;
+
+	message Bloc {
+		required fixed64 data = 1;
+	}
+
+	repeated Bloc blocs = 2;
+}

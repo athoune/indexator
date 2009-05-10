@@ -1,4 +1,5 @@
 __doc__ = """
+[TODO] compression
 """
 __author__ = "Mathieu Lecarme <mathieu@garambrogne.net>"
 
@@ -7,6 +8,7 @@ import zlib
 import math
 import random as _random
 import struct
+from index_pb2 import Index
 
 __all__ = ['empty', 'Bitset', 'load']
 
@@ -21,6 +23,10 @@ def empty(size=0):
 	b = BitSet()
 	b._data = []
 	b._size = size
+	n = size // b._WORD
+	if size % b._WORD > 0 : n += 1
+	for a in range(n):
+		b._data.append(0)
 	return b
 
 def random(n=1):
@@ -37,7 +43,7 @@ def random(n=1):
 class BitSet:
 	_data = []
 	_size = 0
-	_WORD = 128
+	_WORD = 64
 	_ZSIZE = 1024
 	def __init__(self, data = []):
 		for a in data:
@@ -95,6 +101,7 @@ class BitSet:
 		return b
 	def __neg__(self):
 		b = empty(self._size)
+		b._data = []
 		for i in self._data:
 			b._data.append(long(2**self._WORD - 1) ^ i)
 		return b
@@ -104,6 +111,15 @@ class BitSet:
 			total += cached_cardinality(i)
 		return total
 	def dump(self, file):
+		index = Index()
+		index.size = self._size
+		for d in self._data:
+			bloc = index.blocs.add()
+			bloc.data = d
+		file.seek(0) #[FIXME]
+		file.write(index.SerializeToString())
+		
+	def _dump(self, file):
 		file.seek(0)
 		file.write(struct.pack('l', self._size))
 		d = marshal.dumps(self._data)[1:]
@@ -140,11 +156,21 @@ def cached_cardinality(i):
 	return total
 
 def load(file):
+	index = Index()
+	file.seek(0) #[FIXME]
+	index.ParseFromString(file.read())
+	b = empty(index.size)
+	b._data = []
+	for bloc in index.blocs:
+		b._data.append(bloc.data)
+	return b
+
+def _load(file):
 	"""
 	Load a BitSet from a file
 	"""
 	file.seek(0)
-	b = empty(struct.unpack('l', file.read(4)))
+	b = empty(struct.unpack('l', file.read(4))[0])
 	if 'z' == file.read(1) :
 		d = zlib.decompress(file.read())
 	else:
@@ -191,5 +217,8 @@ if __name__ == '__main__':
 			for a in b:
 				tas.append(a)
 			self.assert_(b, BitSet(tas))
+		def testEmpty(self):
+			b = empty(42)
+			self.assert_(42 * '0', str(b))
 
 	unittest.main()
