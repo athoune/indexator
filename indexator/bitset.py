@@ -8,7 +8,11 @@ import zlib
 import math
 import random as _random
 import struct
-from index_pb2 import Index
+try:
+	from index_pb2 import Index
+	protobuf = True
+except:
+	protobuf = False
 
 __all__ = ['empty', 'Bitset', 'load']
 
@@ -39,6 +43,57 @@ def random(n=1):
 	for a in range(n):
 		b._data.append(_random.getrandbits(b._WORD))
 	return b
+
+class Serializator:
+	"Classical Python implementation"
+	def __init__(self, file):
+		self.file = file
+	def dump(self, bitset):
+		self.file.seek(0)
+		self.file.write(struct.pack('l', bitset._size))
+		d = marshal.dumps(bitset._data)[1:]
+		if bitset._size > bitset._ZSIZE:
+			self.file.write('z')
+			z = zlib.compress(d)
+			self.file.write(z)
+			t = 1.0 * len(z) / len(d)
+		else:
+			self.file.write('n')
+			self.file.write(d)
+			t = 1
+		self.file.flush()
+		return t
+		
+	def load(self):
+		self.file.seek(0)
+		b = empty(struct.unpack('l', self.file.read(4))[0])
+		if 'z' == self.file.read(1) :
+			d = zlib.decompress(self.file.read())
+		else:
+			d = self.file.read()
+		b._data = marshal.loads('[' + d)
+		return b
+
+if protobuf:
+	class ProtoBufSerializator(Serializator):
+		"Google's protobuf implementation"
+		def dump(self, bitset):
+			index = Index()
+			index.size = bitset._size
+			for d in bitset._data:
+				bloc = index.blocs.add()
+				bloc.data = d
+			self.file.seek(0) #[FIXME]
+			self.file.write(index.SerializeToString())
+		def load(self):
+			index = Index()
+			self.file.seek(0) #[FIXME]
+			index.ParseFromString(self.file.read())
+			b = empty(index.size)
+			b._data = []
+			for bloc in index.blocs:
+				b._data.append(bloc.data)
+			return b
 
 class BitSet:
 	_data = []
@@ -110,30 +165,6 @@ class BitSet:
 		for i in self._data:
 			total += cached_cardinality(i)
 		return total
-	def dump(self, file):
-		index = Index()
-		index.size = self._size
-		for d in self._data:
-			bloc = index.blocs.add()
-			bloc.data = d
-		file.seek(0) #[FIXME]
-		file.write(index.SerializeToString())
-		
-	def _dump(self, file):
-		file.seek(0)
-		file.write(struct.pack('l', self._size))
-		d = marshal.dumps(self._data)[1:]
-		if self._size > self._ZSIZE:
-			file.write('z')
-			z = zlib.compress(d)
-			file.write(z)
-			t = 1.0 * len(z) / len(d)
-		else:
-			file.write('n')
-			file.write(d)
-			t = 1
-		file.flush()
-		return t
 
 def cardinality(i):
 	total = 0
@@ -154,29 +185,6 @@ def cached_cardinality(i):
 		total += _cc[i & 255]
 		i = i >> 8
 	return total
-
-def load(file):
-	index = Index()
-	file.seek(0) #[FIXME]
-	index.ParseFromString(file.read())
-	b = empty(index.size)
-	b._data = []
-	for bloc in index.blocs:
-		b._data.append(bloc.data)
-	return b
-
-def _load(file):
-	"""
-	Load a BitSet from a file
-	"""
-	file.seek(0)
-	b = empty(struct.unpack('l', file.read(4))[0])
-	if 'z' == file.read(1) :
-		d = zlib.decompress(file.read())
-	else:
-		d = file.read()
-	b._data = marshal.loads('[' + d)
-	return b
 
 if __name__ == '__main__':
 	import unittest
@@ -202,15 +210,21 @@ if __name__ == '__main__':
 		def testXor(self):
 			self.assert_(BitSet([False, True, True]), self.b ^ BitSet([True,False,True]))
 		def testDump(self):
-			out = StringIO.StringIO()
-			self.b.dump(out)
-			self.assert_(self.b, load(out))
+			serialz = [Serializator]
+			if protobuf:
+				serialz.append(ProtoBufSerializator)
+			for s in serialz:
+				out = StringIO.StringIO()
+				serial = s(out)
+				serial.dump(self.b)
+				self.assert_(self.b, serial.load())
 		def testCompression(self):
 			for a in range(8):
 				out = StringIO.StringIO()
+				serial = Serializator(out)
 				b = random(2**a)
-				b.dump(out)
-				self.assert_(b, load(out))
+				serial.dump(b)
+				self.assert_(b, serial.load())
 		def testIter(self):
 			b = random(42)
 			tas = []
