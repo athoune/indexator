@@ -1,4 +1,7 @@
 __doc__ = """
+A bitset is an array of boolean wich implements all boolean algebra operations.
+
+A bitset can stored an retrived, compressed or not.
 """
 __author__ = "Mathieu Lecarme <mathieu@garambrogne.net>"
 
@@ -43,7 +46,7 @@ if LZMA:
 	compressors['m'] = pylzma
 
 class Serializator:
-	"Classical Python implementation"
+	"Simple serialization"
 	def __init__(self, file):
 		self.file = file
 		self.compressor = 'z'
@@ -79,7 +82,7 @@ class Serializator:
 if PROTOBUF:
 	__all__.append('ProtoBufSerializator')
 	class ProtoBufSerializator(Serializator):
-		"Google's protobuf implementation"
+		"Google's protobuf serialization"
 		def _dump(self, bitset):
 			index = Index()
 			index.size = bitset._size
@@ -96,15 +99,12 @@ if PROTOBUF:
 				b._data.append(bloc.data)
 			return b
 
-
 class WrongSizeException(Exception):
 	pass
 # http://code.activestate.com/recipes/576738/
 
 def empty(size=0):
-	"""
-	Build an empty BitSet
-	"""
+	"Build an empty BitSet"
 	b = BitSet()
 	b._data = []
 	b._size = size
@@ -115,9 +115,7 @@ def empty(size=0):
 	return b
 
 def random(n=1):
-	"""
-	Build a random BitSet
-	"""
+	"Build a random BitSet"
 	_random.seed()
 	b = empty()
 	b._size = n * b._WORD
@@ -126,6 +124,9 @@ def random(n=1):
 	return b
 
 class BitSet:
+	"""
+A bitset is an array of boolean wich implements all boolean algebra operations.
+	"""
 	_data = []
 	_size = 0
 	_WORD = 64
