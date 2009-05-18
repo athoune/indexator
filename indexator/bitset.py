@@ -1,5 +1,4 @@
 __doc__ = """
-[TODO] compression
 """
 __author__ = "Mathieu Lecarme <mathieu@garambrogne.net>"
 
@@ -19,6 +18,11 @@ try:
 	LZO = True
 except:
 	LZO = False
+try:
+	import pylzma
+	LZMA = True
+except:
+	LZMA = False
 
 __all__ = ['empty', 'Bitset', 'Serializator']
 
@@ -34,7 +38,9 @@ compressors['n'] = NullCompressor()
 compressors['z'] = zlib
 compressors['b'] = bz2
 if LZO:
-	compressors['l'] = lzo
+	compressors['o'] = lzo
+if LZMA:
+	compressors['m'] = pylzma
 
 class Serializator:
 	"Classical Python implementation"
