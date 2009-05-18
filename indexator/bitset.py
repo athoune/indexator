@@ -5,16 +5,91 @@ __author__ = "Mathieu Lecarme <mathieu@garambrogne.net>"
 
 import marshal
 import zlib
+import bz2
 import math
 import random as _random
 import struct
 try:
 	from index_pb2 import Index
-	protobuf = True
+	PROTOBUF = True
 except:
-	protobuf = False
+	PROTOBUF = False
+try:
+	import lzo
+	LZO = True
+except:
+	LZO = False
 
-__all__ = ['empty', 'Bitset', 'load']
+__all__ = ['empty', 'Bitset', 'Serializator']
+
+compressors = {}
+
+class NullCompressor:
+	def compress(self, data):
+		return data
+	def decompress(self, data):
+		return data
+
+compressors['n'] = NullCompressor()
+compressors['z'] = zlib
+compressors['b'] = bz2
+if LZO:
+	compressors['l'] = lzo
+
+class Serializator:
+	"Classical Python implementation"
+	def __init__(self, file):
+		self.file = file
+		self.compressor = 'z'
+
+	def _dump(self, bitset):
+		return struct.pack('l', bitset._size) + marshal.dumps(bitset._data)[1:]
+
+	def dump(self, bitset):
+		self.file.seek(0)
+		buff = self._dump(bitset)
+		if bitset._size > bitset._ZSIZE:
+			self.file.write(self.compressor)
+			z = compressors[self.compressor].compress(buff)
+			t = 1.0 * len(z) / len(buff)
+			self.file.write(z)
+		else:
+			self.file.write('n')
+			self.file.write(buff)
+			t = 1.0
+		self.file.flush()
+		return t
+
+	def _load(self, buff):
+		b = empty(struct.unpack('l', buff[:4])[0])
+		b._data = marshal.loads('[' + buff[4:])
+		return b
+	def load(self):
+		self.file.seek(0)
+		compress = compressors[self.file.read(1)]
+		buff = compress.decompress(self.file.read())
+		return self._load(buff)
+
+if PROTOBUF:
+	__all__.append('ProtoBufSerializator')
+	class ProtoBufSerializator(Serializator):
+		"Google's protobuf implementation"
+		def _dump(self, bitset):
+			index = Index()
+			index.size = bitset._size
+			for d in bitset._data:
+				bloc = index.blocs.add()
+				bloc.data = d
+			return index.SerializeToString()
+		def _load(self, buff):
+			index = Index()
+			index.ParseFromString(buff)
+			b = empty(index.size)
+			b._data = []
+			for bloc in index.blocs:
+				b._data.append(bloc.data)
+			return b
+
 
 class WrongSizeException(Exception):
 	pass
@@ -43,57 +118,6 @@ def random(n=1):
 	for a in range(n):
 		b._data.append(_random.getrandbits(b._WORD))
 	return b
-
-class Serializator:
-	"Classical Python implementation"
-	def __init__(self, file):
-		self.file = file
-	def dump(self, bitset):
-		self.file.seek(0)
-		self.file.write(struct.pack('l', bitset._size))
-		d = marshal.dumps(bitset._data)[1:]
-		if bitset._size > bitset._ZSIZE:
-			self.file.write('z')
-			z = zlib.compress(d)
-			self.file.write(z)
-			t = 1.0 * len(z) / len(d)
-		else:
-			self.file.write('n')
-			self.file.write(d)
-			t = 1
-		self.file.flush()
-		return t
-		
-	def load(self):
-		self.file.seek(0)
-		b = empty(struct.unpack('l', self.file.read(4))[0])
-		if 'z' == self.file.read(1) :
-			d = zlib.decompress(self.file.read())
-		else:
-			d = self.file.read()
-		b._data = marshal.loads('[' + d)
-		return b
-
-if protobuf:
-	class ProtoBufSerializator(Serializator):
-		"Google's protobuf implementation"
-		def dump(self, bitset):
-			index = Index()
-			index.size = bitset._size
-			for d in bitset._data:
-				bloc = index.blocs.add()
-				bloc.data = d
-			self.file.seek(0) #[FIXME]
-			self.file.write(index.SerializeToString())
-		def load(self):
-			index = Index()
-			self.file.seek(0) #[FIXME]
-			index.ParseFromString(self.file.read())
-			b = empty(index.size)
-			b._data = []
-			for bloc in index.blocs:
-				b._data.append(bloc.data)
-			return b
 
 class BitSet:
 	_data = []
@@ -211,7 +235,7 @@ if __name__ == '__main__':
 			self.assert_(BitSet([False, True, True]), self.b ^ BitSet([True,False,True]))
 		def testDump(self):
 			serialz = [Serializator]
-			if protobuf:
+			if PROTOBUF:
 				serialz.append(ProtoBufSerializator)
 			for s in serialz:
 				out = StringIO.StringIO()
@@ -219,12 +243,14 @@ if __name__ == '__main__':
 				serial.dump(self.b)
 				self.assert_(self.b, serial.load())
 		def testCompression(self):
-			for a in range(8):
-				out = StringIO.StringIO()
-				serial = Serializator(out)
-				b = random(2**a)
-				serial.dump(b)
-				self.assert_(b, serial.load())
+			for c in compressors.keys():
+				for a in range(8):
+					out = StringIO.StringIO()
+					serial = Serializator(out)
+					b = random(2**a)
+					b.compressor = c
+					serial.dump(b)
+					self.assert_(b, serial.load())
 		def testIter(self):
 			b = random(42)
 			tas = []
