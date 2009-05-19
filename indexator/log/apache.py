@@ -4,13 +4,11 @@ __author__ = "Mathieu Lecarme <mathieu@garambrogne.net>"
 
 import re
 from datetime import datetime
-from browscap import UserAgentParser
+from browscap_tiny import UserAgent
 
 RE_COMMON = re.compile('(.*?) - (.*?) \[(.*?) [+-]\d{4}\] "(.*?) (.*?) (.*?)" (\d{3}) (\d+)', re.U)
 RE_COMBINED = re.compile('(.*?) - (.*?) \[(.*?) [+-]\d{4}\] "(.*?) (.*?) (.*?)" (\d{3}) (\d+) "(.*?)" "(.*?)"', re.U)
-userAgent = UserAgentParser()
-userAgent.load()
-
+userAgent = UserAgent()
 
 class Common:
 	def parse(self, line):
@@ -40,12 +38,17 @@ class Combined:
 		'code':   int(m.group(7)),
 		'size':   int(m.group(8)),
 		'referer':m.group(9),
-		'user-agent':m.group(10)
+		'user-agent':userAgent.match(m.group(10))
 		}
-		print userAgent.query(m.group(10))
 		return dico
 
 if __name__ == '__main__':
+	import sys
+	if len(sys.argv) > 1:
+		c = Combined()
+		f = file(sys.argv[1], 'w')
+		for line in f:
+			print c.parse(l)
 	import unittest
 	class ApacheTest(unittest.TestCase):
 		def testCommon(self):
