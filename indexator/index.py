@@ -55,6 +55,11 @@ class Index(collections.Mapping):
 
 if __name__ == '__main__':
 	if len(sys.argv) > 0:
+		try:
+			import psyco
+			psyco.full()
+		except ImportError:
+			pass
 		from log.apache import Combined
 		c = Combined()
 		f = file(sys.argv[1], 'r')

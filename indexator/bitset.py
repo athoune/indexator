@@ -12,7 +12,7 @@ import struct
 try:
 	from index_pb2 import Index
 	PROTOBUF = True
-except:
+except ImportError:
 	PROTOBUF = False
 
 from compressor import compressors

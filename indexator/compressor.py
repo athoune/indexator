@@ -10,12 +10,12 @@ import bz2
 try:
 	import lzo
 	LZO = True
-except:
+except ImportError:
 	LZO = False
 try:
 	import pylzma
 	LZMA = True
-except:
+except ImportError:
 	LZMA = False
 
 compressors = {}
