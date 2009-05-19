@@ -7,6 +7,7 @@ __author__ = "Mathieu Lecarme <mathieu@garambrogne.net>"
 import codecs
 import fnmatch
 import time
+import os.path
 
 __all__ = ['UserAgent']
 
@@ -17,7 +18,7 @@ _trad = {
 }
 
 class UserAgent:
-	def __init__(self, path='php_browscap.ini'):
+	def __init__(self, path=os.path.dirname(__file__) + '/php_browscap.ini'):
 		chrono = time.time()
 		global _trad
 		self.default = {}
