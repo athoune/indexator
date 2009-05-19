@@ -4,7 +4,7 @@ and http://browsers.garykeith.com/
 """
 __author__ = "Mathieu Lecarme <mathieu@garambrogne.net>"
 
-from ConfigParser import ConfigParser
+import codecs
 
 __all__ = ['UserAgent']
 
@@ -16,28 +16,48 @@ _trad = {
 
 class UserAgent:
 	def __init__(self, path='php_browscap.ini'):
-		self.config = ConfigParser()
-		self.config.readfp(open(path))
-		# Remove meta sections
-		self.default = self.__parseSection("DefaultProperties")
-		self.config.remove_section("DefaultProperties")
-		self.config.remove_section("GJK_Browscap_Version")
-		self.agents = {}
-		for section in self.config.sections():
-			self.agents[section] = self.__parseSection(section)
-	def __parseSection(self, section):
 		global _trad
-		dic = {}
-		for option in self.config.options(section):
-			opt = self.config.get(section, option)
-			if _trad.has_key(opt):
-				opt = _trad[opt]
-			try:
-				opt = int(opt)
-			except:
-				pass
-			dic[option] = opt
-		return dic
+		#self.config = ConfigParser()
+		#self.config.readfp(open(path))
+		# Remove meta sections
+		self.default = {}
+		#self.default = self.__parseSection("DefaultProperties")
+		#self.config.remove_section("DefaultProperties")
+		#self.config.remove_section("GJK_Browscap_Version")
+		self.agents = {}
+		bof = ['GJK_Browscap_Version', '*']
+		#for section in self.config.sections():
+		#	self.agents[section] = self.__parseSection(section)
+		f = codecs.open(path, encoding='latin1')
+		section = None
+		for l in f:
+			line = l.strip()
+			if line == '' or line[0] == ';' : continue
+			if line[0] == '[':
+				section = line[1:-1]
+				continue
+			if section in bof: continue
+			poz = line.find('=')
+			if poz == -1: continue #weird
+			key = line[:poz]
+			value = line[poz+1:]
+			if _trad.has_key(value):
+				value = _trad[value]
+			else:
+				try:
+					value = int(value)
+				except:
+					pass
+			if section == 'DefaultProperties':
+				self.default[key] = value
+			else:
+				if not self.agents.has_key(section):
+					self.agents[section] = {}
+				self.agents[section][key] = value
+				if key == 'Parent' and self.agents.has_key(value):
+					for (k,v) in self.agents[value].iteritems():
+						if not self.agents[section].has_key(k):
+							self.agents[section][k] = v
 
 if __name__ == '__main__':
 	u = UserAgent()
