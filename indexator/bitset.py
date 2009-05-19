@@ -6,8 +6,6 @@ A bitset can stored an retrived, compressed or not.
 __author__ = "Mathieu Lecarme <mathieu@garambrogne.net>"
 
 import marshal
-import zlib
-import bz2
 import math
 import random as _random
 import struct
@@ -16,34 +14,10 @@ try:
 	PROTOBUF = True
 except:
 	PROTOBUF = False
-try:
-	import lzo
-	LZO = True
-except:
-	LZO = False
-try:
-	import pylzma
-	LZMA = True
-except:
-	LZMA = False
+
+from compressor import compressors
 
 __all__ = ['empty', 'Bitset', 'Serializator']
-
-compressors = {}
-
-class NullCompressor:
-	def compress(self, data):
-		return data
-	def decompress(self, data):
-		return data
-
-compressors['n'] = NullCompressor()
-compressors['z'] = zlib
-compressors['b'] = bz2
-if LZO:
-	compressors['o'] = lzo
-if LZMA:
-	compressors['m'] = pylzma
 
 class Serializator:
 	"Simple serialization"
