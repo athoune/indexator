@@ -1,6 +1,8 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import collections
-import marshal
+import cPickle
+import sys
 try:
 	import pytc
 	TC = True
@@ -8,7 +10,6 @@ except:
 	TC = False
 
 """
-[TODO] persistance
 [TODO] choix du moteur, gdbm, tokyo cabinet ...
 [TODO] création des index
 """
@@ -33,10 +34,9 @@ class Data:
 			yield k, self.decodeValue(v)
 
 if TC:
-	class TokyoCabinetData(Data):
+	class TokyoCabinetData(pytc.HDB):
 		def __init__(self, file):
-			self.data = pytc.HDB()
-			self.data.open(file, pytc.HDBOWRITER | pytc.HDBOCREAT)
+			self.open(file, pytc.HDBOWRITER | pytc.HDBOCREAT)
 		def __repr__(self):
 			return '<TokyoCabinetData size:%i>' % (len(self))
 
@@ -54,28 +54,38 @@ class Index(collections.Mapping):
 		return self._data.__iter__()
 
 if __name__ == '__main__':
-	import unittest
+	if len(sys.argv) > 0:
+		from log.apache import Combined
+		c = Combined()
+		f = file(sys.argv[1], 'r')
+		i = 0
+		d = TokyoCabinetData('/tmp/apache.htc')
+		for line in f:
+			i += 1
+			d[str(i)] = cPickle.dumps(c.parse(line))
+	else:
+		import unittest
 	
-	class DataTest(unittest.TestCase):
-		def testGetSet(self):
-			if TC:
-				d = TokyoCabinetData('/tmp/tc.htc')
-				data = [1,2,3,"a"]
-				d[42] = data
-				self.assert_(data, d[42])
-				self.assert_(1, d)
-				print d
+		class DataTest(unittest.TestCase):
+			def testGetSet(self):
+				if TC:
+					d = TokyoCabinetData('/tmp/tc.htc')
+					data = [1,2,3,"a"]
+					d[42] = data
+					self.assert_(data, d[42])
+					self.assert_(1, d)
+					print d
 	
-	class IndexTest(unittest.TestCase):
-		def setUp(self):
-			pass
-		def testInit(self):
-			m = {'Name' : 'Bob',
-			'Sexe' : True,
-			'tags' : ['sponge', 'sea'],
-			}
-			i = Index(m)
-			#for k in i:
-			#	print k
+		class IndexTest(unittest.TestCase):
+			def setUp(self):
+				pass
+			def testInit(self):
+				m = {'Name' : 'Bob',
+				'Sexe' : True,
+				'tags' : ['sponge', 'sea'],
+				}
+				i = Index(m)
+				#for k in i:
+				#	print k
 
-	unittest.main()
+		unittest.main()
