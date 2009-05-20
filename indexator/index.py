@@ -3,6 +3,7 @@
 import collections
 import cPickle
 import sys
+import time
 try:
 	import pytc
 	TC = True
@@ -37,7 +38,7 @@ if TC:
 	class TokyoCabinetData(pytc.HDB):
 		def __init__(self, file):
 			self.open(file, pytc.HDBOWRITER | pytc.HDBOCREAT)
-			self.batchsize = 100
+			self.batchsize = 1000
 			self._c = 0
 			self.serializer = cPickle
 		def __repr__(self):
@@ -75,13 +76,14 @@ if __name__ == '__main__':
 		f = file(sys.argv[1], 'r')
 		i = 0
 		d = TokyoCabinetData('/tmp/apache.htc')
+		chrono = time.time()
 		for line in f:
 			i += 1
 			d[i] = c.parse(line)
 			if i % 10 == 0:
-				print "i",
+				print ".",
 			if i % 100 == 0:
-				print " ", i
+				print " ", i, i / (time.time() - chrono), 'line/second'
 	else:
 		import unittest
 	
