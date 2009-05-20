@@ -37,8 +37,18 @@ if TC:
 	class TokyoCabinetData(pytc.HDB):
 		def __init__(self, file):
 			self.open(file, pytc.HDBOWRITER | pytc.HDBOCREAT)
+			self.batchsize = 100
+			self._c = 0
+			self.serializer = cPickle
 		def __repr__(self):
 			return '<TokyoCabinetData size:%i>' % (len(self))
+		def __setitem__(self, item, value):
+			self.putasync(str(item), self.serializer.dumps(value))
+			self._c += 1
+			if self._c > self.batchsize:
+				self.sync()
+		def __getitem__(self, item):
+			return self.serializer.loads(pytc.HDB.__getitem__(self, str(item)))
 
 class Index(collections.Mapping):
 	_data = {}
@@ -54,7 +64,7 @@ class Index(collections.Mapping):
 		return self._data.__iter__()
 
 if __name__ == '__main__':
-	if len(sys.argv) > 0:
+	if len(sys.argv) > 1:
 		try:
 			import psyco
 			psyco.full()
@@ -67,7 +77,11 @@ if __name__ == '__main__':
 		d = TokyoCabinetData('/tmp/apache.htc')
 		for line in f:
 			i += 1
-			d[str(i)] = cPickle.dumps(c.parse(line))
+			d[i] = c.parse(line)
+			if i % 10 == 0:
+				print "i",
+			if i % 100 == 0:
+				print " ", i
 	else:
 		import unittest
 	
