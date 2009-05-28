@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 __doc__ = """
 A bitset is an array of boolean wich implements all boolean algebra operations.
 
@@ -78,7 +81,9 @@ class WrongSizeException(Exception):
 # http://code.activestate.com/recipes/576738/
 
 def empty(size=0):
-	"Build an empty BitSet"
+	"""Build an empty BitSet
+	[TODO] building large bitset without filling it one bit at time
+	"""
 	b = BitSet()
 	b._data = []
 	b._size = size
@@ -145,35 +150,40 @@ A bitset is an array of boolean wich implements all boolean algebra operations.
 	def __eq__(self, other):
 		return self._data == other._data
 	def __and__(self, other):
-		b = empty(self._size)
-		for i in range(len(self._data)):
-			b._data.append(other._data[i] & self._data[i])
-		return b
+		return self.map(other, lambda me, other, size : me & other)
 	def __or__(self, other):
-		b = empty(self._size)
-		for i in range(len(self._data)):
-			b._data.append(other._data[i] | self._data[i])
-		return b
+		return self.map(other, lambda me, other, size : me | other)
 	def __xor__(self, other):
-		b = empty(self._size)
-		for i in range(len(self._data)):
-			b._data.append(other._data[i] ^ self._data[i])
-		return b
+		return self.map(other, lambda me, other, size : me ^ other)
 	def __neg__(self):
-		b = empty(self._size)
-		b._data = []
-		for i in self._data:
-			b._data.append(long(2**self._WORD - 1) ^ i)
-		return b
+		return self.map(None, lambda me, other, size: long(2**size -1) ^ me)
 	def cardinality(self):
 		total = 0
 		for i in self._data:
 			total += cached_cardinality(i)
 		return total
+	def map(self, other, method):
+		"""
+		[TODO] multi threads
+		"""
+		b = empty(self._size)
+		b._data = []
+		size = len(self._data)
+		for a in range(len(self._data)):
+			if a+1 < size:
+				s = self._WORD
+			else:
+				s = self._size - a * self._WORD
+			if other != None:
+				o = other._data[a]
+			else:
+				o = None
+			b._data.append(method(self._data[a], o, s))
+		return b
 
 def cardinality(i):
 	total = 0
-	while i > 1:
+	while i >= 1:
 		if i & 1 == 1 : total += 1
 		i = i >> 1
 	return total
@@ -185,7 +195,7 @@ def cached_cardinality(i):
 		_cc = {}
 		for a in range(256):
 			_cc[a] = cardinality(a)
-	total = 0
+	total = _cc[i & 255]
 	while i > 255:
 		total += _cc[i & 255]
 		i = i >> 8
@@ -197,6 +207,9 @@ if __name__ == '__main__':
 	class BitSetTest(unittest.TestCase):
 		def setUp(self):
 			self.b = BitSet([True, True, False])
+		def testNot(self):
+			#print repr(- self.b)
+			self.assertEqual(BitSet([False, False, True]), - self.b)
 		def testAppend(self):
 			b = BitSet()
 			for aa in range(4000):
@@ -205,15 +218,15 @@ if __name__ == '__main__':
 			c = -b
 			#print b, c
 			#print len(b)
-			self.assert_(-c == b)
+			self.assertEqual(-c, b)
 		def testCardinality(self):
-			self.assert_(2, self.b.cardinality())
+			self.assertEqual(2, self.b.cardinality())
 		def testAnd(self):
-			self.assert_(BitSet([True, False, False ]), self.b & BitSet([True,False,True]))
+			self.assertEqual(BitSet([True, False, False ]), self.b & BitSet([True,False,True]))
 		def testOr(self):
-			self.assert_(BitSet([True, True, True]), self.b | BitSet([True,False,True]))
+			self.assertEqual(BitSet([True, True, True]), self.b | BitSet([True,False,True]))
 		def testXor(self):
-			self.assert_(BitSet([False, True, True]), self.b ^ BitSet([True,False,True]))
+			self.assertEqual(BitSet([False, True, True]), self.b ^ BitSet([True,False,True]))
 		def testDump(self):
 			serialz = [Serializator]
 			if PROTOBUF:
@@ -222,7 +235,7 @@ if __name__ == '__main__':
 				out = StringIO.StringIO()
 				serial = s(out)
 				serial.dump(self.b)
-				self.assert_(self.b, serial.load())
+				self.assertEqual(self.b, serial.load())
 		def testCompression(self):
 			for c in compressors.keys():
 				for a in range(8):
@@ -231,15 +244,21 @@ if __name__ == '__main__':
 					b = random(2**a)
 					b.compressor = c
 					serial.dump(b)
-					self.assert_(b, serial.load())
+					self.assertEqual(b, serial.load())
+		def testSimpleIter(self):
+			z = [False, True, False]
+			b = BitSet(z)
+			self.assertEqual(1, b.cardinality())
+			self.assertEqual(3, len(b))
+			cpt = 0
+			for a in b:
+				#print z[cpt], a
+				self.assertEqual(z[cpt], a)
+				cpt += 1
 		def testIter(self):
 			b = random(42)
 			tas = []
 			for a in b:
 				tas.append(a)
-			self.assert_(b, BitSet(tas))
-		def testEmpty(self):
-			b = empty(42)
-			self.assert_(42 * '0', str(b))
-
+			self.assertEqual(b, BitSet(tas))
 	unittest.main()
