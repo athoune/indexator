@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 __doc__ = """
 Stolen from http://code.google.com/p/python-browscap/
 and http://browsers.garykeith.com/
