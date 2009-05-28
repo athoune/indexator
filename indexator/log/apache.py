@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 __doc__ = """
 """
 __author__ = "Mathieu Lecarme <mathieu@garambrogne.net>"
