@@ -14,7 +14,7 @@ setup(# Distribution meta-data
     url = "http://github.com/athoune/indexator/tree/master",
     #download_url = "",
     license = "LGPL License",
-    packages = ["indexator"],
+    packages = ["indexator", "indexator.log"],
     classifiers=[
         'Operating System :: OS Independent',
         'Programming Language :: Python',
