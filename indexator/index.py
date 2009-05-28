@@ -50,6 +50,8 @@ if TC:
 				self.sync()
 		def __getitem__(self, item):
 			return self.serializer.loads(pytc.HDB.__getitem__(self, str(item)))
+		def __contains__(self, key):
+			return self.has_key(key)
 
 class Index(collections.Mapping):
 	_data = {}
