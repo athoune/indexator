@@ -12,6 +12,7 @@ import marshal
 import math
 import random as _random
 import struct
+from multiprocessing import Pool
 try:
 	from index_pb2 import Index
 	PROTOBUF = True
@@ -102,6 +103,23 @@ def random(n=1):
 		b._data.append(_random.getrandbits(b._WORD))
 	return b
 
+def _and(args):
+	me, other, size = args
+	return me & other
+
+def _neg(args):
+	me, other, size = args
+	return long(2**size -1) ^ me
+
+def _or(args):
+	me, other, size = args
+	return me | other
+	
+def _xor(args):
+	me, other, size = args
+	return me ^ other
+	
+
 class BitSet:
 	"""
 A bitset is an array of boolean wich implements all boolean algebra operations.
@@ -110,6 +128,7 @@ A bitset is an array of boolean wich implements all boolean algebra operations.
 	_size = 0
 	_WORD = 64
 	_ZSIZE = 1024
+	_THREAD = 4
 	def __init__(self, data = []):
 		for a in data:
 			self.append(a)
@@ -150,36 +169,50 @@ A bitset is an array of boolean wich implements all boolean algebra operations.
 	def __eq__(self, other):
 		return self._data == other._data
 	def __and__(self, other):
-		return self.map(other, lambda me, other, size : me & other)
+		return self.map(other, _and)
 	def __or__(self, other):
-		return self.map(other, lambda me, other, size : me | other)
+		return self.map(other, _or)
 	def __xor__(self, other):
-		return self.map(other, lambda me, other, size : me ^ other)
+		return self.map(other, _xor)
 	def __neg__(self):
-		return self.map(None, lambda me, other, size: long(2**size -1) ^ me)
+		return self.map(None, _neg)
 	def cardinality(self):
 		total = 0
 		for i in self._data:
 			total += cached_cardinality(i)
 		return total
 	def map(self, other, method):
-		"""
-		[TODO] multi threads
-		"""
+		p = Pool(processes=self._THREAD)
 		b = empty(self._size)
-		b._data = []
-		size = len(self._data)
-		for a in range(len(self._data)):
+		b._data = p.map(method, BitsetIterator(self, other))
+		return b
+
+from functools import wraps
+def mapDecorator(func):
+	@wraps(f)
+	def wrapper(*args, **kwds):
+		p = Pool(processes=4)
+		b = empty(self._size)
+		b._data = p.map(f, BitsetIterator(self, other))
+		return b
+	return wrapper
+
+class BitsetIterator:
+	def __init__(self, one, other = None):
+		self.one = one
+		self.other = other
+	def __iter__(self):
+		size = len(self.one._data)
+		for a in range(len(self.one._data)):
 			if a+1 < size:
-				s = self._WORD
+				s = self.one._WORD
 			else:
-				s = self._size - a * self._WORD
-			if other != None:
-				o = other._data[a]
+				s = self.one._size - a * self.one._WORD
+			if self.other != None:
+				o = self.other._data[a]
 			else:
 				o = None
-			b._data.append(method(self._data[a], o, s))
-		return b
+			yield self.one._data[a], o, s
 
 def cardinality(i):
 	total = 0
@@ -207,8 +240,12 @@ if __name__ == '__main__':
 	class BitSetTest(unittest.TestCase):
 		def setUp(self):
 			self.b = BitSet([True, True, False])
+		def testIterator(self):
+			i = BitsetIterator(random(42))
+			for a in i:
+				pass
+				#print a
 		def testNot(self):
-			#print repr(- self.b)
 			self.assertEqual(BitSet([False, False, True]), - self.b)
 		def testAppend(self):
 			b = BitSet()
