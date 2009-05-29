@@ -12,6 +12,7 @@ import marshal
 import math
 import random as _random
 import struct
+import time
 try:
 	from index_pb2 import Index
 	PROTOBUF = True
@@ -219,6 +220,15 @@ if __name__ == '__main__':
 			#print b, c
 			#print len(b)
 			self.assertEqual(-c, b)
+		def testThread(self):
+			for a in range(16):
+				b = random(1492)
+				b._THREAD = a
+				bb = random(1492)
+				chrono = time.time()
+				for aa in range(500):
+					b ^ bb
+				print a, time.time() - chrono
 		def testCardinality(self):
 			self.assertEqual(2, self.b.cardinality())
 		def testAnd(self):
