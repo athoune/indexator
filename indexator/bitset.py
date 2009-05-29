@@ -4,7 +4,7 @@
 __doc__ = """
 A bitset is an array of boolean wich implements all boolean algebra operations.
 
-A bitset can stored an retrived, compressed or not.
+A bitset can be stored and retrieved, compressed or not.
 """
 __author__ = "Mathieu Lecarme <mathieu@garambrogne.net>"
 
