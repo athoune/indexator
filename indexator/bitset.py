@@ -65,7 +65,6 @@ A bitset is an array of boolean wich implements all boolean algebra operations.
 	_data = []
 	_size = 0
 	_WORD = 64
-	_ZSIZE = 1024
 	_THREAD = 4
 	def __init__(self, data = []):
 		for a in data:
