@@ -98,6 +98,9 @@ if __name__ == '__main__':
 					d[k] = v
 				#print d
 				self.l.append(d)
+		def testNot(self):
+			b = - self.l.query('score', 42)
+			self.assertEquals(set([0]), b.results())
 		def testAnd(self):
 			b = self.l.query('score', 42) & self.l.query('tags', 'simple')
 			self.assertEquals(1, b.cardinality())
