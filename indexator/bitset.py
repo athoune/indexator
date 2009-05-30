@@ -8,74 +8,11 @@ A bitset can stored an retrived, compressed or not.
 """
 __author__ = "Mathieu Lecarme <mathieu@garambrogne.net>"
 
-import marshal
-import math
 import random as _random
-import struct
 import time
-try:
-	from index_pb2 import Index
-	PROTOBUF = True
-except ImportError:
-	PROTOBUF = False
 
-from compressor import compressors
+__all__ = ['empty', 'Bitset', 'random']
 
-__all__ = ['empty', 'Bitset', 'Serializator']
-
-class Serializator:
-	"Simple serialization"
-	def __init__(self, file):
-		self.file = file
-		self.compressor = 'z'
-
-	def _dump(self, bitset):
-		return struct.pack('l', bitset._size) + marshal.dumps(bitset._data)[1:]
-
-	def dump(self, bitset):
-		self.file.seek(0)
-		buff = self._dump(bitset)
-		if bitset._size > bitset._ZSIZE:
-			self.file.write(self.compressor)
-			z = compressors[self.compressor].compress(buff)
-			t = 1.0 * len(z) / len(buff)
-			self.file.write(z)
-		else:
-			self.file.write('n')
-			self.file.write(buff)
-			t = 1.0
-		self.file.flush()
-		return t
-
-	def _load(self, buff):
-		b = empty(struct.unpack('l', buff[:4])[0])
-		b._data = marshal.loads('[' + buff[4:])
-		return b
-	def load(self):
-		self.file.seek(0)
-		compress = compressors[self.file.read(1)]
-		buff = compress.decompress(self.file.read())
-		return self._load(buff)
-
-if PROTOBUF:
-	__all__.append('ProtoBufSerializator')
-	class ProtoBufSerializator(Serializator):
-		"Google's protobuf serialization"
-		def _dump(self, bitset):
-			index = Index()
-			index.size = bitset._size
-			for d in bitset._data:
-				bloc = index.blocs.add()
-				bloc.data = d
-			return index.SerializeToString()
-		def _load(self, buff):
-			index = Index()
-			index.ParseFromString(buff)
-			b = empty(index.size)
-			b._data = []
-			for bloc in index.blocs:
-				b._data.append(bloc.data)
-			return b
 
 class WrongSizeException(Exception):
 	pass
@@ -149,6 +86,7 @@ A bitset is an array of boolean wich implements all boolean algebra operations.
 	def __len__(self):
 		return int(self._size)
 	def __eq__(self, other):
+		#print self._data, other._data
 		return self._data == other._data
 	def __and__(self, other):
 		return self.map(other, lambda me, other, size : me & other)
@@ -204,7 +142,6 @@ def cached_cardinality(i):
 
 if __name__ == '__main__':
 	import unittest
-	import StringIO
 	class BitSetTest(unittest.TestCase):
 		def setUp(self):
 			self.b = BitSet([True, True, False])
@@ -220,7 +157,7 @@ if __name__ == '__main__':
 			#print b, c
 			#print len(b)
 			self.assertEqual(-c, b)
-		def testThread(self):
+		def _testThread(self):
 			for a in range(16):
 				b = random(1492)
 				b._THREAD = a
@@ -237,24 +174,6 @@ if __name__ == '__main__':
 			self.assertEqual(BitSet([True, True, True]), self.b | BitSet([True,False,True]))
 		def testXor(self):
 			self.assertEqual(BitSet([False, True, True]), self.b ^ BitSet([True,False,True]))
-		def testDump(self):
-			serialz = [Serializator]
-			if PROTOBUF:
-				serialz.append(ProtoBufSerializator)
-			for s in serialz:
-				out = StringIO.StringIO()
-				serial = s(out)
-				serial.dump(self.b)
-				self.assertEqual(self.b, serial.load())
-		def testCompression(self):
-			for c in compressors.keys():
-				for a in range(8):
-					out = StringIO.StringIO()
-					serial = Serializator(out)
-					b = random(2**a)
-					b.compressor = c
-					serial.dump(b)
-					self.assertEqual(b, serial.load())
 		def testSimpleIter(self):
 			z = [False, True, False]
 			b = BitSet(z)
