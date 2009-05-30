@@ -33,3 +33,12 @@ if LZO:
 	compressors['o'] = lzo
 if LZMA:
 	compressors['m'] = pylzma
+
+if __name__ == '__main__':
+	import unittest
+	class CompressTest(unittest.TestCase):
+		def testCompression(self):
+			for compress in compressors.values():
+				test = "Il fait beau et chaud"
+				self.assertEquals(test, compress.decompress(compress.compress(test)))
+	unittest.main()
