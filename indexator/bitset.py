@@ -107,33 +107,30 @@ A bitset is an array of boolean wich implements all boolean algebra operations.
 		#print self._data, other._data
 		return self._data == other._data
 	def __and__(self, other):
-		return self.map(other, _and)
+		return self._map(other, _and)
 	def __or__(self, other):
-		return self.map(other, _or)
+		return self._map(other, _or)
 	def __xor__(self, other):
-		return self.map(other, _xor)
+		return self._map(other, _xor)
 	def __neg__(self):
-		return self.map(None, _neg)
+		return self._map(None, _neg)
 	def cardinality(self):
 		total = 0
 		for i in self._data:
 			total += cached_cardinality(i)
 		return total
-	def map(self, other, method):
+	def _map(self, other, method):
 		p = Pool(processes=self._THREAD)
 		b = empty(self._size)
 		b._data = p.map(method, BitsetIterator(self, other))
 		return b
-
-from functools import wraps
-def mapDecorator(func):
-	@wraps(f)
-	def wrapper(*args, **kwds):
-		p = Pool(processes=4)
-		b = empty(self._size)
-		b._data = p.map(f, BitsetIterator(self, other))
-		return b
-	return wrapper
+	def results(self):
+		results = set()
+		cpt = 0
+		for value in self:
+			if value : results.add(cpt)
+			cpt +=1
+		return results
 
 class BitsetIterator:
 	def __init__(self, one, other = None):
@@ -226,4 +223,6 @@ if __name__ == '__main__':
 			for a in b:
 				tas.append(a)
 			self.assertEqual(b, BitSet(tas))
+		def testResults(self):
+			self.assertEquals(set([0,1]), self.b.results())
 	unittest.main()
