@@ -44,6 +44,9 @@ class UserAgent:
 			if poz == -1: continue #weird
 			key = line[:poz]
 			value = line[poz+1:]
+			if value[0] == '"': value = value[1:]
+			if value[-1] == '"': value = value[:-1]
+			value = value.strip()
 			if _trad.has_key(value):
 				value = _trad[value]
 			else:
