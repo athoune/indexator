@@ -8,6 +8,7 @@ __doc__ = """
 import os
 import index
 import bitset
+import types
 
 #[TODO] gerer les listes comme des strings de long long, un add fait un append directement dans TC
 #[TODO] gere les index inverses comme des Btrees, pour permettre les > < et [ .. ]. Encodage des clefs, number, date, qui reste triable
@@ -20,12 +21,13 @@ class Library:
 			pass
 		self.dir = path
 		self.cpt = 0
-		for f in ['store', 'inverse']:
-			try:
-				os.remove("%s/%s.htc" % (path, f))
-			except OSError:
-				pass
-				#print 'oups', "%s/%s.htc" % (path, f)
+		if raz:
+			for f in ['store', 'inverse']:
+				try:
+					os.remove("%s/%s.htc" % (path, f))
+				except OSError:
+					pass
+					#print 'oups', "%s/%s.htc" % (path, f)
 		self.store = index.TokyoCabinetData("%s/store.htc" % path)
 		self.inverse = index.TokyoCabinetData("%s/inverse.htc" % path)
 	def append(self, document):
@@ -53,6 +55,9 @@ class Library:
 		"An iterator wich fetch all document in a bitset"
 		for key in bitset.results():
 			yield self.store[key]
+	def fields(self):
+		for key in self.inverse:
+			yield key
 
 class Document:
 	def __init__(self, id = None):
@@ -74,6 +79,8 @@ class Document:
 		if inverse:
 			self.inverse.append("%s:%s" % (key, value))
 	def __setitem__(self, key, value):
+		if type(value) == types.StringType:
+			value = value.lower()
 		self.set(key, value, True, True)
 	def __getitem__(self, key):
 		return self.data[key]
