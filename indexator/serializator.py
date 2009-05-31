@@ -12,7 +12,7 @@ __all__ = ['Serializator']
 	
 class Serializator:
 	"Simple serialization"
-	def __init__(self, out, compressor = 'z', thresold=1024):
+	def __init__(self, out, compressor = 'n', thresold=1024):
 		self.file = out
 		self.compressor = compressor
 		self.thresold = thresold
@@ -20,7 +20,7 @@ class Serializator:
 		f = self.file
 		f.seek(0)
 		buff = self._dump(bitset)
-		if len(bitset) > self.thresold:
+		if self.compressor != 'n' and len(bitset) > self.thresold:
 			f.write(self.compressor)
 			z = compressors[self.compressor].compress(buff)
 			t = 1.0 * len(z) / len(buff)
