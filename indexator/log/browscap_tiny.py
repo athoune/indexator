@@ -11,6 +11,7 @@ import codecs
 import fnmatch
 import time
 import os.path
+import re
 
 __all__ = ['UserAgent']
 
@@ -27,6 +28,7 @@ class UserAgent:
 		self.default = {}
 		self.agents = {}
 		self.sections = []
+		self.treeSections = {}
 		bof = ['GJK_Browscap_Version']
 		f = codecs.open(path, encoding='latin1')
 		section = None
@@ -59,12 +61,31 @@ class UserAgent:
 					for (k,v) in self.agents[value].iteritems():
 						if not self.agents[section].has_key(k):
 							self.agents[section][k] = v
-		self.chrono = time.time() - chrono
-	def match(self, agent):
+		#This trick eats some results, but, it's 50% faster
+		magic = re.compile('[?*]')
 		for section in self.sections:
+			key = self._firstWord(magic.split(section)[0])
+			if not self.treeSections.has_key(key):
+				self.treeSections[key] = []
+			self.treeSections[key].append(section)
+		#print self.treeSections.keys()
+		self.chrono = time.time() - chrono
+	def _firstWord(self, txt):
+		space = txt.find(' ')
+		slash = txt.find('/')
+		if space == -1 and slash == -1:
+			return txt
+		if space == -1:
+			return txt[:slash]
+		if slash == -1:
+			return txt[:space]
+		return txt[min(space, slash)]
+	def match(self, agent):
+		sections = self.treeSections.get(self._firstWord(agent), self.treeSections[''])
+		for section in sections:
 			if fnmatch.fnmatch(agent, section):
 				return self.agents[section]
-		return None
+		return self.default
 
 if __name__ == '__main__':
 	u = UserAgent()
