@@ -21,7 +21,6 @@ class WrongSizeException(Exception):
 
 def empty(size=0):
 	"""Build an empty BitSet
-	[TODO] building large bitset without filling it one bit at time
 	"""
 	b = BitSet()
 	b._data = []
