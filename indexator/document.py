@@ -8,7 +8,9 @@ __doc__ = """
 import os
 import index
 import bitset
-import cPickle as pickle
+
+#[TODO] gerer les listes comme des strings de long long, un add fait un append directement dans TC
+#[TODO] gere les index inverses comme des Btrees, pour permettre les > < et [ .. ]. Encodage des clefs, number, date, qui reste triable
 
 class Library:
 	def __init__(self, path, raz = False):
@@ -30,7 +32,7 @@ class Library:
 		"Add a new document"
 		if document.id == None:
 			document.id = self.cpt
-		self.store[document.id] = pickle.dumps(document)
+		self.store[document.id] = document
 		keys = self.inverse.keys()
 		for i in document.inverse:
 			if i not in keys: keys.append(i)
@@ -50,7 +52,7 @@ class Library:
 	def documents(self, bitset):
 		"An iterator wich fetch all document in a bitset"
 		for key in bitset.results():
-			yield pickle.loads(self.store[key])
+			yield self.store[key]
 
 class Document:
 	def __init__(self, id = None):
