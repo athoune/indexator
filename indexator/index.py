@@ -38,16 +38,11 @@ if TC:
 	class TokyoCabinetData(pytc.HDB):
 		def __init__(self, file):
 			self.open(file, pytc.HDBOWRITER | pytc.HDBOCREAT)
-			self.batchsize = 1000
-			self._c = 0
 			self.serializer = cPickle
 		def __repr__(self):
 			return '<TokyoCabinetData size:%i>' % (len(self))
 		def __setitem__(self, item, value):
 			self.putasync(str(item), self.serializer.dumps(value))
-			self._c += 1
-			if self._c > self.batchsize:
-				self.sync()
 		def __getitem__(self, item):
 			return self.serializer.loads(pytc.HDB.__getitem__(self, str(item)))
 		def __contains__(self, key):
