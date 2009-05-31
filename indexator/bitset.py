@@ -65,6 +65,7 @@ A bitset is an array of boolean wich implements all boolean algebra operations.
 	_size = 0
 	_WORD = 64
 	_THREAD = 4
+	_pool = False
 	def __init__(self, data = []):
 		for a in data:
 			self.append(a)
@@ -119,9 +120,14 @@ A bitset is an array of boolean wich implements all boolean algebra operations.
 			total += cached_cardinality(i)
 		return total
 	def _map(self, other, method):
-		p = Pool(processes=self._THREAD)
 		b = empty(self._size)
-		b._data = p.map(method, BitsetIterator(self, other))
+		if self._pool:
+			p = Pool(processes=self._THREAD)
+			b._data = p.map(method, BitsetIterator(self, other))
+		else:
+			b._data = []
+			for iter in BitsetIterator(self, other):
+				b._data.append(method(iter))
 		return b
 	def results(self):
 		results = set()
