@@ -56,8 +56,13 @@ class Library:
 		for key in bitset.results():
 			yield self.store[key]
 	def fields(self):
+		data = {}
 		for key in self.inverse:
-			yield key
+			k,v = key.split(':', 1)
+			if not data.has_key(k):
+				data[k] = []
+			data[k].append(v)
+		return data
 
 class Document:
 	def __init__(self, id = None):
@@ -79,7 +84,7 @@ class Document:
 		if inverse:
 			self.inverse.append("%s:%s" % (key, value))
 	def __setitem__(self, key, value):
-		if type(value) == types.StringType:
+		if type(value) in [types.StringType, types.UnicodeType]:
 			value = value.lower()
 		self.set(key, value, True, True)
 	def __getitem__(self, key):
