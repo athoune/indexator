@@ -10,6 +10,8 @@ import index
 import bitset
 import types
 
+from parser import terms, Bloc
+
 #[TODO] gerer les listes comme des strings de long long, un add fait un append directement dans TC
 #[TODO] gere les index inverses comme des Btrees, pour permettre les > < et [ .. ]. Encodage des clefs, number, date, qui reste triable
 
@@ -48,9 +50,11 @@ class Library:
 			self.inverse[key] = new
 		self.cpt += 1
 		return self.cpt -1
-	def query(self, key, value):
+	def get(self, key, value):
 		"A simple query for a key=value"
 		return self.inverse["%s:%s" % (key, value)]
+	def query(self, query):
+		return Bloc(terms.parseString(query)).value(self)
 	def documents(self, bitset):
 		"An iterator wich fetch all document in a bitset"
 		for key in bitset.results():
@@ -63,6 +67,19 @@ class Library:
 				data[k] = []
 			data[k].append(v)
 		return data
+
+class Query:
+	def __init__(self, library, query):
+		self.library = library
+		self.query = query
+		self.stack = []
+	def value(self):
+		q = terms.parseString(self.query).value()
+		self.stack = q[0]
+		self.action = None
+		print q.dump()
+		for word in q[1:]:
+			print word.getName()
 
 class Document:
 	def __init__(self, id = None):
@@ -113,12 +130,13 @@ if __name__ == '__main__':
 				#print d
 				self.l.append(d)
 		def testNot(self):
-			b = - self.l.query('score', 42)
+			b = - self.l.get('score', 42)
 			self.assertEquals(set([0]), b.results())
 		def testAnd(self):
-			b = self.l.query('score', 42) & self.l.query('tags', 'simple')
+			b = self.l.get('score', 42) & self.l.get('tags', 'simple')
+			print self.l.query("score:42 and tags:simple")
 			self.assertEquals(1, b.cardinality())
 			self.assertEquals(set([1]), b.results())
 			for doc in self.l.documents(b):
-				self.assertEquals('Casimir',doc['nom'])
+				self.assertEquals('casimir',doc['nom'])
 	unittest.main()

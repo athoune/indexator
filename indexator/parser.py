@@ -38,9 +38,11 @@ class Word(Token):
 	def __init__(self, s):
 		data = s.split(':')
 		self.field = data[0]
-		self.value = data[1]
+		self.data = data[1]
+	def value(self, library):
+		return library.get(self.field, self.data)
 	def __str__(self):
-		return '<%s:%s>' % (self.field, self.value)
+		return '<%s:%s>' % (self.field, self.data)
 class Operator(Token):
 	def __init__(self, s):
 		self.action = s
@@ -51,9 +53,28 @@ class Bloc(Token):
 		self.values = values
 	def __str__(self):
 		return '(%s)' % self.values
+	def value(self, library):
+		value = self.values[0].value(library)
+		action = None
+		for token in self.values[1:]:
+			#print type(token), token
+			if action == None:
+				action = token.action
+			else:
+				#print value, action, token
+				if action == 'or':
+					value = value | token.value(library)
+				if action == 'and':
+					value = value & token.value(library)
+				if action == 'xor':
+					value = value ^ token.value(library)
+				action == None
+		return value
 class Not(Bloc):
 	def __str__(self):
 		return 'not(%s)' % self.values
+	def value(self, library):
+		return - Bloc.value(library)
 
 if __name__ == '__main__':
 	t =  terms.parseString("""not palteform:winxp or (code:200 and not browser:firefox)""")
