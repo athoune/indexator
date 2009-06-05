@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 __doc__ = """
+A boolean language syntax to querying library.
 """
 __author__ = "Mathieu Lecarme <mathieu@garambrogne.net>"
 
@@ -92,7 +93,3 @@ if __name__ == '__main__':
 		else:
 			print indent * "\t", t
 	eat(t)
-	'''
-	for toks,start,end in terms.parseString("""palteform:winxp or (code:200 and -browser:firefox)"""):
-		print toks,start,end
-'''

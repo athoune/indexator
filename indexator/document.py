@@ -6,9 +6,10 @@ __doc__ = """
 """
 
 import os
+
 import index
 import bitset
-import types
+import filter as _filter
 
 from parser import terms, Bloc
 
@@ -86,7 +87,8 @@ class Document:
 		self.id = id
 		self.data = {}
 		self.inverse = []
-	def set(self, key, value, inverse=True, store=True):
+	def set(self, key, value, inverse=True, store=True, filter = _filter.Lower()):
+		value = filter.filter(value)
 		if '__iter__' in dir(value):
 			for v in value:
 				self.set(key, v, inverse, store)
@@ -101,8 +103,6 @@ class Document:
 		if inverse:
 			self.inverse.append("%s:%s" % (key, value))
 	def __setitem__(self, key, value):
-		if type(value) in [types.StringType, types.UnicodeType]:
-			value = value.lower()
 		self.set(key, value, True, True)
 	def __getitem__(self, key):
 		return self.data[key]
@@ -134,7 +134,8 @@ if __name__ == '__main__':
 			self.assertEquals(set([0]), b.results())
 		def testAnd(self):
 			b = self.l.get('score', 42) & self.l.get('tags', 'simple')
-			print self.l.query("score:42 and tags:simple")
+			for document in self.l.documents(self.l.query("score:42 and tags:simple")):
+				print document
 			self.assertEquals(1, b.cardinality())
 			self.assertEquals(set([1]), b.results())
 			for doc in self.l.documents(b):

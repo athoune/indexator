@@ -1,7 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+__doc__ = """
+HTML and Javascript graph simple abstraction
+"""
+
 class Document:
+	"An HTML page"
 	def __init__(self, title = 'Graph'):
 		self.title = title
 		self.graph = []
@@ -15,10 +20,6 @@ class Document:
 		<script type="text/javascript" 
 		        src="http://www.google.com/jsapi"></script>
 		<script type="text/javascript">
-		  // You may specify partial version numbers, such as "1" or "1.3",
-		  //  with the same result. Doing so will automatically load the 
-		  //  latest version matching that partial revision pattern 
-		  //  (i.e. both 1 and 1.3 would load 1.3.2 today).
 		  google.load("jquery", "1.3");
 		</script>
 		<script language="javascript" type="text/javascript" src="http://people.iola.dk/olau/flot/jquery.flot.js"></script>
@@ -40,6 +41,7 @@ class Document:
 cpt = 0
 
 class Graph:
+	"A graph"
 	def __init__(self, title= "A cute graph", width=600, height=300):
 		global cpt
 		cpt+=1

@@ -3,7 +3,10 @@
 
 __author__ = "Mathieu Lecarme <mathieu@garambrogne.net>"
 __doc__ = """
+An abstraction for differents compressions with a single letter signature.
 """
+
+__all__ = ['compressors']
 
 import zlib
 import bz2
