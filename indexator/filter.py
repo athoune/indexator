@@ -8,6 +8,8 @@ Simple filter wich can be piped.
 
 import types
 
+__all__ = ['accent', 'lower']
+
 class MetaFilter:
 	def __init__(self, filter):
 		self.filters = [filter]
@@ -16,9 +18,9 @@ class MetaFilter:
 	def __or__(self,other):
 		self.append(other)
 		return self
-	def filter(self, data):
+	def __call__(self, data):
 		for filter in self.filters:
-			data = filter.filter(data)
+			data = filter(data)
 		return data
 
 class Filter:
@@ -28,49 +30,55 @@ class Filter:
 		return meta
 
 class TextFilter(Filter):
-	def filter(self, data):
+	def __call__(self, data):
 		if type(data) in [types.StringType, types.UnicodeType]:
 			return self.textFilter(data)
 		return data
 	def textFilter(self, data):
 		return data
 
-letters = {
+_letters = {
 'a':u'àâä',
-'e':u'èéêï'
+'e':u'èéêï',
+'i':u'ìïî',
+'o':u'òôö',
+'u':u'ùûü',
+'n':u'ñ'
 }
 
-accents = {}
-for letter, accentz in letters.iteritems():
+_accents = {}
+for letter, accentz in _letters.iteritems():
 	for accent in accentz:
-		accents[accent] = letter 
+		_accents[accent] = letter 
 
 
 class Accent(TextFilter):
 	def textFilter(self, data):
-		global accents
+		global _accents
 		tmp = ''
 		for letter in data:
-			if letter in accents:
-				tmp += accents[letter]
+			if letter in _accents:
+				tmp += _accents[letter]
 			else:
 				tmp += letter
 		return tmp
-	
+
+accent = Accent()
 
 class Lower(TextFilter):
 	"To lower filter"
 	def textFilter(self, data):
 		return data.lower()
 
+lower = Lower()
+
 if __name__ == '__main__':
 	import unittest
 	class FilterTest(unittest.TestCase):
 		def testLower(self):
-			self.assertEquals('bob', Lower().filter('BoB'))
+			self.assertEquals('bob', lower('BoB'))
 		def testAccent(self):
-			self.assertEquals('pepe', Accent().filter(u'pépé'))
+			self.assertEquals('pepe', accent(u'pépé'))
 		def testMeta(self):
-			filter = Lower() | Accent()
-			self.assertEquals('pepe', filter.filter(u'Pépé'))
+			self.assertEquals('pepe', (lower | accent)(u'Pépé'))
 	unittest.main()
