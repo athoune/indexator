@@ -69,26 +69,13 @@ class Library:
 			data[k].append(v)
 		return data
 
-class Query:
-	def __init__(self, library, query):
-		self.library = library
-		self.query = query
-		self.stack = []
-	def value(self):
-		q = terms.parseString(self.query).value()
-		self.stack = q[0]
-		self.action = None
-		print q.dump()
-		for word in q[1:]:
-			print word.getName()
-
 class Document:
 	def __init__(self, id = None):
 		self.id = id
 		self.data = {}
 		self.inverse = []
-	def set(self, key, value, inverse=True, store=True, filter = _filter.Lower()):
-		value = filter.filter(value)
+	def set(self, key, value, inverse=True, store=True, filter = _filter.lower, lotOfValues=False):
+		value = filter(value)
 		if '__iter__' in dir(value):
 			for v in value:
 				self.set(key, v, inverse, store)
