@@ -87,7 +87,7 @@ class Document:
 				self.data[key].append(value)
 			else:
 				self.data[key] = value
-		if inverse:
+		if inverse and value != None:
 			self.inverse.append("%s:%s" % (key, value))
 	def __setitem__(self, key, value):
 		self.set(key, value, True, True)
