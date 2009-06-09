@@ -55,6 +55,7 @@ def asDocument(cls):
 	d = document.Document()
 	for key, value in cls._definitions.iteritems():
 		d[key] = cls.__dict__[key]
+	d['__class__'] = cls.__class__.__name__
 	return d
 
 def _repr(cls):
