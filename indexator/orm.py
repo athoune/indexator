@@ -5,6 +5,7 @@ __author__ = "Mathieu Lecarme <mathieu@garambrogne.net>"
 __doc__ = """
 """
 
+
 import struct
 import datetime
 
@@ -49,8 +50,21 @@ class Field(object):
 	def __repr__(self):
 		return "<Field: %s>" % self.type.__name__
 
-class MetaBase(type):
-	def __init__(self, classname='Base', bases=(object,), dico= {}):
+def asDocument(cls):
+	"""[TODO] handles differents fields"""
+	d = document.Document()
+	for key, value in cls._definitions.iteritems():
+		d[key] = cls.__dict__[key]
+	return d
+
+def _repr(cls):
+	tmp = "<" + cls.__class__.__name__
+	for key in cls._definitions.keys():
+		tmp += " " + key + ":" + repr(cls.__dict__[key])
+	return tmp + ">"
+	
+class ormtype(type):
+	def __init__(self, classname, bases, dico):
 		#print "dict avant", dico
 		self._definitions = {}
 		for key, value in dico.iteritems():
@@ -59,10 +73,15 @@ class MetaBase(type):
 				continue
 			if isinstance(value, Field):
 				self._definitions[key] = value
+		self.asDocument = asDocument
+		self.__repr__ = _repr
 		#print "dict apres", dico
-		return type.__init__(self, classname, (object, MetaBase, ), dico)
+		return type.__init__(self, classname, (object, ), dico)
 
-Base = MetaBase('Base', (object,), {})
+def metabase(classname='Base', bases=(object,), dico= {}):
+	return ormtype(classname, bases, dico)
+
+Base = metabase()
 
 if __name__ == '__main__':
 	import unittest
@@ -75,7 +94,9 @@ if __name__ == '__main__':
 			self.score = score
 			self.tags = tags
 	d = Data("Robert", 42)
-	print d.name, d._definitions, d.__dict__
+	print d
+	#print d.name, d._definitions, d.__dict__, dir(d)
+	print d.asDocument()
 	d.test = Field(String)
 	class ORMTypeTest(unittest.TestCase):
 		def testInteger(self):
