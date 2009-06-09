@@ -51,11 +51,15 @@ class Field(object):
 		return "<Field: %s>" % self.type.__name__
 
 def asDocument(cls):
-	"""[TODO] handles differents fields"""
 	d = document.Document()
-	for key, value in cls._definitions.iteritems():
-		d[key] = cls.__dict__[key]
-	d['__class__'] = cls.__class__.__name__
+	dico = cls._definitions
+	dico['__class__'] = Field(String , inverse = False, filter = None)
+	for key, field in dico.iteritems():
+		if key == '__class__':
+			value = cls.__class__.__name__
+		else:
+			value = cls.__dict__[key]
+		d.set(key, value, field.inverse, field.store, field.filter, field.lotOfValues)
 	return d
 
 def _repr(cls):
