@@ -75,7 +75,8 @@ class Document:
 		self.data = {}
 		self.inverse = []
 	def set(self, key, value, inverse=True, store=True, filter = _filter.lower, lotOfValues=False):
-		value = filter(value)
+		if filter != None:
+			value = filter(value)
 		if '__iter__' in dir(value):
 			for v in value:
 				self.set(key, v, inverse, store)
