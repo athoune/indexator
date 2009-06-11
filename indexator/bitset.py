@@ -122,12 +122,10 @@ A bitset is an array of boolean wich implements all boolean algebra operations.
 	def _map(self, other, method):
 		b = empty(self._size)
 		if self._pool:
-			p = Pool(processes=self._THREAD)
-			b._data = p.map(method, BitsetIterator(self, other))
+			m = Pool(processes=self._THREAD).map
 		else:
-			b._data = []
-			for iter in BitsetIterator(self, other):
-				b._data.append(method(iter))
+			m = map
+		b._data = m(method, BitsetIterator(self, other))
 		return b
 	def results(self):
 		results = set()
