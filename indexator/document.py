@@ -70,10 +70,12 @@ class Library:
 		return data
 
 class Document:
-	def __init__(self, id = None):
+	def __init__(self, id = None, **kargs):
 		self.id = id
 		self.data = {}
 		self.inverse = []
+		for key, value in kargs.iteritems():
+			self.set(key, value)
 	def set(self, key, value, inverse=True, store=True, filter = _filter.lower, lotOfValues=False):
 		if filter != None:
 			value = filter(value)
@@ -117,6 +119,9 @@ if __name__ == '__main__':
 					d[k] = v
 				#print d
 				self.l.append(d)
+		def testKargs(self):
+			d = Document(name='Bob', score=42)
+			self.assertEquals(42, d['score'])
 		def testNot(self):
 			b = - self.l.get('score', 42)
 			self.assertEquals(set([0]), b.results())
