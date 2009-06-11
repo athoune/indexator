@@ -6,8 +6,37 @@ Indexator doesn't handle well delete, but it's very efficient for selecting and 
 
 Install
 =======
-easy_install -U pyparsing
-easy_install -U pytc
+
+::
+
+  easy_install -U pyparsing
+  easy_install -U pytc
+
+Usage
+=====
+
+You need a library::
+
+  library = Library('/tmp/index.test')
+
+and some documents::
+
+  document = Document()
+  document['name'] = 'Robert'
+  document['score'] = 42
+  document['tags'] = ('machin', 'truc', 'simple')
+  document.set('data', inverse=False)
+
+Document can act as a dictionnary (with string keys), or with a set when you need to specify informations. Field value can be unique or a collection.
+
+You can now add it to the library::
+
+  library.append(document)
+
+And querying it::
+
+  for document in library.documents(library.query("score:42 and tags:simple")):
+    print document
 
 Modules
 =======
