@@ -35,9 +35,18 @@ class Data:
 			yield k, self.decodeValue(v)
 
 if TC:
+	def tokyoCabinetData(file, mode='r'):
+		tc = TokyoCabinetData()
+		if mode not in ['r', 'w']:
+			raise Exception
+			file = "%s.htc" % file
+		if mode == 'w':
+			tc.open(file, pytc.HDBOWRITER | pytc.HDBOCREAT)
+		if mode == 'r':
+			tc.open(file, pytc.HDBOREADER)
+		return tc
 	class TokyoCabinetData(pytc.HDB):
-		def __init__(self, file):
-			self.open(file, pytc.HDBOWRITER | pytc.HDBOCREAT)
+		def __init__(self):
 			self.serializer = cPickle
 		def __repr__(self):
 			return '<TokyoCabinetData size:%i>' % (len(self))
@@ -45,6 +54,27 @@ if TC:
 			self.putasync(str(item), self.serializer.dumps(value))
 		def __getitem__(self, item):
 			return self.serializer.loads(pytc.HDB.__getitem__(self, str(item)))
+		def __contains__(self, key):
+			return self.has_key(key)
+	def TokyoCabinetSortedData(file, mode='r'):
+		tc = TokyoCabinetSortedData()
+		if mode not in ['r', 'w']:
+			raise Exception('only r or w')
+		file = "%s.btc" % file
+		if mode == 'w':
+			tc.open(file, pytc.BDBOWRITER | pytc.BDBOCREAT)
+		if mode == 'r':
+			tc.open(file, pytc.BDBOREADER)
+		return tc
+	class TokyoCabinetSortedData(pytc.BDB):
+		def __init__(self):
+			self.serializer = cPickle
+		def __repr__(self):
+			return '<TokyoCabinetSortedData size:%i>' % (len(self))
+		def __setitem__(self, item, value):
+			self.putasync(str(item), self.serializer.dumps(value))
+		def __getitem__(self, item):
+			return self.serializer.loads(pytc.BDB.__getitem__(self, str(item)))
 		def __contains__(self, key):
 			return self.has_key(key)
 
@@ -63,16 +93,11 @@ class Index(collections.Mapping):
 
 if __name__ == '__main__':
 	if len(sys.argv) > 1:
-		try:
-			import psyco
-			psyco.full()
-		except ImportError:
-			pass
 		from log.apache import Combined
 		c = Combined()
 		f = file(sys.argv[1], 'r')
 		i = 0
-		d = TokyoCabinetData('/tmp/apache.htc')
+		d = tokyoCabinetData('/tmp/apache')
 		chrono = time.time()
 		for line in f:
 			i += 1
@@ -83,13 +108,15 @@ if __name__ == '__main__':
 				print " ", i, i / (time.time() - chrono), 'line/second'
 	else:
 		import unittest
-	
+
 		class DataTest(unittest.TestCase):
 			def testGetSet(self):
 				if TC:
-					d = TokyoCabinetData('/tmp/tc.htc')
+					d = tokyoCabinetData('/tmp/tc', 'w')
 					data = [1,2,3,"a"]
 					d[42] = data
+					d.close()
+					d = tokyoCabinetData('/tmp/tc', 'r')
 					self.assert_(data, d[42])
 					self.assert_(1, d)
 					print d
