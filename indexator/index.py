@@ -56,7 +56,7 @@ if TC:
 			return self.serializer.loads(pytc.HDB.__getitem__(self, str(item)))
 		def __contains__(self, key):
 			return self.has_key(key)
-	def TokyoCabinetSortedData(file, mode='r'):
+	def tokyoCabinetSortedData(file, mode='r'):
 		tc = TokyoCabinetSortedData()
 		if mode not in ['r', 'w']:
 			raise Exception('only r or w')
@@ -72,7 +72,7 @@ if TC:
 		def __repr__(self):
 			return '<TokyoCabinetSortedData size:%i>' % (len(self))
 		def __setitem__(self, item, value):
-			self.putasync(str(item), self.serializer.dumps(value))
+			self.put(str(item), self.serializer.dumps(value))
 		def __getitem__(self, item):
 			return self.serializer.loads(pytc.BDB.__getitem__(self, str(item)))
 		def __contains__(self, key):
@@ -112,14 +112,15 @@ if __name__ == '__main__':
 		class DataTest(unittest.TestCase):
 			def testGetSet(self):
 				if TC:
-					d = tokyoCabinetData('/tmp/tc', 'w')
-					data = [1,2,3,"a"]
-					d[42] = data
-					d.close()
-					d = tokyoCabinetData('/tmp/tc', 'r')
-					self.assert_(data, d[42])
-					self.assert_(1, d)
-					print d
+					for cabinet in [tokyoCabinetData, tokyoCabinetSortedData]:
+						d = cabinet('/tmp/tc', 'w')
+						data = [1,2,3,"a"]
+						d[42] = data
+						d.close()
+						d = cabinet('/tmp/tc', 'r')
+						self.assert_(data, d[42])
+						self.assert_(1, d)
+						print d
 	
 		class IndexTest(unittest.TestCase):
 			def setUp(self):
