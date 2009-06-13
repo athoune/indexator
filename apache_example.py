@@ -7,6 +7,7 @@ __author__ = "Mathieu Lecarme <mathieu@garambrogne.net>"
 
 from indexator.log.apache import Combined
 from indexator.document import Library, Document
+from indexator.parser import Bloc, terms
 import indexator.graph as graph
 import sys
 import time
@@ -60,16 +61,18 @@ def showall(size):
 def query(size):
 	chrono = time.time()
 	cpt = 0
+	#bloc = Bloc(terms.parseString(" plateform:winxp and code:200 and browser:firefox"))
+	global library
 	for a in range(1000):
-		bit = library.query('plateform', 'winxp') & library.query('code', '200') & library.query('browser', 'firefox')
+		bit =  - library.get('plateform', 'winxp') & library.get('code', '200') & (library.get('browser', 'firefox') | library.get('browser', 'safari'))
 		cpt += 1
-	print bit.cardinality()
+	print bit.cardinality(), 'matches on', len(library), 'lines'
 	print cpt / (time.time() - chrono), 'query/s'
 
 parser = OptionParser()
 parser.add_option("-l", "--log", dest="log", help="apache combined log file")
-parser.add_option("-n", "--size", dest="size", help="number of parsed lines", type="int", default=10000)
-parser.add_option("-S", "--stat", dest="stat", help="number of parsed lines")
+parser.add_option("-n", "--size", dest="size", help="number of parsed lines", type="int", default=100000)
+parser.add_option("-S", "--stat", dest="stat", help="stat")
 actions = ['showall', 'query']
 parser.add_option("-a", "--action", dest="action", help="actions : " + str(actions))
 
@@ -77,11 +80,13 @@ parser.add_option("-a", "--action", dest="action", help="actions : " + str(actio
 (options, args) = parser.parse_args()
 
 if options.log != None:
-	library = Library('/tmp/apache.test', True)
+	library = Library('/tmp/apache.test', 'w')
 	cProfile.run('parse(options.log, options.size)', 'parse.prof')
+else:
+	library = Library('/tmp/apache.test', 'r')
 if options.action != None:
 	if options.action in actions:
-		library = Library('/tmp/apache.test', False)
+		library = Library('/tmp/apache.test', 'r')
 		cProfile.run(options.action + '(options.size)', options.action + '.prof')
 	else:
 		print "action must be choose in " + str(actions)
