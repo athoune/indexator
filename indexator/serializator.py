@@ -7,6 +7,7 @@ import struct
 from cStringIO import StringIO
 
 from compressor import compressors
+import bitset
 
 __all__ = ['Serializator']
 	
@@ -19,7 +20,7 @@ class Serializator:
 	def dump(self, bitset):
 		f = self.file
 		f.seek(0)
-		buff = self._dump(bitset)
+		buff = dump(bitset)
 		if self.compressor != 'n' and len(bitset) > self.thresold:
 			f.write(self.compressor)
 			z = compressors[self.compressor].compress(buff)
@@ -35,24 +36,27 @@ class Serializator:
 		f = self.file
 		f.seek(0)
 		buff = compressors[f.read(1)].decompress(f.read())
-		return self._load(buff)
-	def _dump(self, bitset):
-		buffer = StringIO()
-		buffer.write(struct.pack('Q', bitset._size))
-		for a in bitset._data:
-			buffer.write(struct.pack('Q', a))
-		buffer.seek(0)
-		return buffer.read()
-	def _load(self, buff):
-		b = BitSet()
-		buffer = StringIO(buff)
-		b._size = struct.unpack('Q', buffer.read(8))[0]
-		b._data = []
-		while True:
-			bloc = buffer.read(8)
-			if bloc == "": break
-			b._data.append(long(struct.unpack('Q', bloc)[0]))
-		return b
+		return load(buff)
+
+def dump(bitset):
+	"serialize a bitset"
+	buffer = StringIO()
+	buffer.write(struct.pack('Q', bitset._size))
+	for a in bitset._data:
+		buffer.write(struct.pack('Q', a))
+	buffer.seek(0)
+	return buffer.read()
+def load(buff):
+	"make a bitset from a bitflow"
+	b = bitset.empty()
+	buffer = StringIO(buff)
+	b._size = struct.unpack('Q', buffer.read(8))[0]
+	b._data = []
+	while True:
+		bloc = buffer.read(8)
+		if bloc == "": break
+		b._data.append(long(struct.unpack('Q', bloc)[0]))
+	return b
 
 if __name__ == '__main__':
 	import unittest
@@ -67,7 +71,7 @@ if __name__ == '__main__':
 				out = StringIO()
 				serial = serializator(out)
 				serial.compressor = 'n'
-				self.assertEquals(8+2048/8,len(serial._dump(self.b)))
+				self.assertEquals(8+2048/8,len(dump(self.b)))
 				serial.dump(self.b)
 				self.assertEqual(self.b, serial.load())
 		def testCompression(self):
