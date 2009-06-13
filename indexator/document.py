@@ -38,10 +38,14 @@ class Library:
 			self.cpt = 0
 		else:
 			self.store = index.tokyoCabinetData("%s/store" % path, self.mode)
-			self.cpt = self.store.rnum() - 1
+			self.cpt = int(self.store.rnum())
 		self.inverse = {}
 	def __len__(self):
 		return self.cpt
+	def close(self):
+		self.store.close()
+		for index in self.inverse.values():
+			index.close()
 	def _addInverse(self, key, value, id):
 		value = str(value)
 		self._index(key).putcat(value, struct.pack('I', id))
@@ -163,9 +167,17 @@ if __name__ == '__main__':
 	import unittest
 	import random
 
-	"""
 	class LibraryTest(unittest.TestCase):
-		def testMulti(self):
+		def testReadWrite(self):
+			library = Library('/tmp/index_rw', 'w')
+			self.assertEquals(0, len(library))
+			doc = Document(name='Bob', score=42)
+			library.append(doc)
+			library.close()
+			libRead = Library('/tmp/index_rw', 'r')
+			self.assertEquals(1, len(libRead))
+			self.assertEquals('bob', libRead.store[0]['name'])
+		def _testMulti(self):
 			libraries = []
 			for a in range(4):
 				print a
@@ -177,7 +189,7 @@ if __name__ == '__main__':
 				libraries.append(library)
 			multi = MultiLibrary(libraries)
 			print multi.query('name:pim')
-"""
+
 	class DocumentTest(unittest.TestCase):
 		def setUp(self):
 			self.l = Library('/tmp/index.test', 'w')
