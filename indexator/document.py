@@ -9,15 +9,49 @@ import os
 from multiprocessing import Pool
 import struct
 import glob
+import time
+from cStringIO import StringIO
+
 
 import index
 import bitset
 import filter as _filter
+import serializator
 
 from parser import terms, Bloc
 
 #[TODO] gerer les listes comme des strings de long long, un add fait un append directement dans TC
 #[TODO] gere les index inverses comme des Btrees, pour permettre les > < et [ .. ]. Encodage des clefs, number, date, qui reste triable
+
+class TokyoCache:
+	"Persistant cache"
+	def __init__(self, path):
+		self.cache = index.tokyoCabinetData(path, 'w')
+	def vanish(self):
+		self.cache.vanish()
+	def __setitem__(self, key, value):
+		self.cache.put(key, serializator.dump(value))
+	def __getitem__(self, key):
+		return serializator.load(self.cache.get(key))
+
+class RAMCache:
+	"Persistant cache cached in RAM"
+	def __init__(self, path):
+		self.ram = {}
+		self.cache = TokyoCache(path)
+	def vanish(self):
+		self.ram = {}
+		self.cache.vanish()
+	def __setitem__(self, key, value):
+		self.cache[key] = value
+	def __getitem__(self, key):
+		if key in self.ram:
+			return self.ram[key]
+		value = self.cache[key]
+		self.ram[key] = value
+		return value
+	def __len__(self):
+		return len(self.ram)
 
 class Library:
 	def __init__(self, path, mode = 'r'):
@@ -29,7 +63,7 @@ class Library:
 		else:
 			self.mode = mode
 		if mode == 'w':
-			for tc in glob.glob("%s/index_*.btc" % path):
+			for tc in glob.glob("%s/inverse_*.btc" % path):
 				os.remove(tc)
 			if not os.path.isdir(path):
 				os.makedirs(path)
@@ -39,6 +73,8 @@ class Library:
 		else:
 			self.store = index.tokyoCabinetData("%s/store" % path, self.mode)
 			self.cpt = int(self.store.rnum())
+		self.cache = RAMCache("%s/cache" % path)
+		self.oups = 0
 		self.inverse = {}
 	def __len__(self):
 		return self.cpt
@@ -50,13 +86,25 @@ class Library:
 		value = str(value)
 		self._index(key).putcat(value, struct.pack('I', id))
 	def _index(self, key):
-		if not self.inverse.has_key(key):
+		if key not in self.inverse:
 			self.inverse[key] = index.tokyoCabinetSortedData("%s/inverse_%s" % (self.dir, key), self.mode)
 		return self.inverse[key]
+	def warmup(self):
+		"build a complete cache"
+		chrono = time.time()
+		for tc in glob.glob("%s/inverse_*.btc" % self.dir):
+			field = tc.split('/')[-1][8:-4]
+			index = self._index(field)
+			index.sync()
+			#print 'keys', field, index.keys()
+			for value in index:
+				self.get(field, value)
+		return chrono - time.time()
 	def append(self, document):
 		"Add a new document"
 		if self.mode == 'r':
 			raise Exception
+		self.cache.vanish()
 		#if document.id == None:
 		document.id = self.cpt
 		self.store[document.id] = document
@@ -72,12 +120,20 @@ class Library:
 	def get(self, key, value):
 		"A simple query for a key=value"
 		value = str(value)
+		cachekey = "%s:%s" % (key, value)
+		try:
+			return self.cache[cachekey]
+		except KeyError:
+			pass
+		self.oups += 1
 		index = self._index(key)
 		try:
 			b = index.get(value)
-			return bitset.fromblob(self.cpt, b)
+			v = bitset.fromblob(self.cpt, b)
 		except KeyError:
-			return bitset.empty(self.cpt)
+			v = bitset.empty(self.cpt)
+		self.cache[cachekey] = v
+		return v
 	def query(self, query):
 		return Bloc(terms.parseString(query)).value(self)
 	def documents(self, bitset):
@@ -173,10 +229,13 @@ if __name__ == '__main__':
 			self.assertEquals(0, len(library))
 			doc = Document(name='Bob', score=42)
 			library.append(doc)
+			library.warmup()
 			library.close()
 			libRead = Library('/tmp/index_rw', 'r')
 			self.assertEquals(1, len(libRead))
 			self.assertEquals('bob', libRead.store[0]['name'])
+			self.assertEquals(set([0]), libRead.get('name', 'bob').results())
+			#self.assertEquals(0, libRead.oups)
 		def _testMulti(self):
 			libraries = []
 			for a in range(4):
