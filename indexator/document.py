@@ -33,6 +33,8 @@ class TokyoCache:
 		self.cache.put(key, serializator.dump(value))
 	def __getitem__(self, key):
 		return serializator.load(self.cache.get(key))
+	def optimize(self):
+		self.cache.optimize(0, -1, -1, 0)
 
 class RAMCache:
 	"Persistant cache cached in RAM"
@@ -52,6 +54,8 @@ class RAMCache:
 		return value
 	def __len__(self):
 		return len(self.ram)
+	def optimize(self):
+		self.cache.optimize()
 
 class Library:
 	def __init__(self, path, mode = 'r'):
@@ -95,10 +99,12 @@ class Library:
 		for tc in glob.glob("%s/inverse_*.btc" % self.dir):
 			field = tc.split('/')[-1][8:-4]
 			index = self._index(field)
-			index.sync()
+			if self.mode == 'w':
+				index.sync()
 			#print 'keys', field, index.keys()
 			for value in index:
 				self.get(field, value)
+		self.cache.optimize()
 		return chrono - time.time()
 	def append(self, document):
 		"Add a new document"
