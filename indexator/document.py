@@ -6,6 +6,9 @@ __doc__ = """
 """
 
 import os
+from multiprocessing import Pool
+import struct
+import glob
 
 import index
 import bitset
@@ -17,43 +20,60 @@ from parser import terms, Bloc
 #[TODO] gere les index inverses comme des Btrees, pour permettre les > < et [ .. ]. Encodage des clefs, number, date, qui reste triable
 
 class Library:
-	def __init__(self, path, raz = False):
-		try:
-			os.makedirs(path)
-		except OSError:
-			pass
+	def __init__(self, path, mode = 'r'):
 		self.dir = path
-		self.cpt = 0
-		if raz:
-			for f in ['store', 'inverse']:
-				try:
-					os.remove("%s/%s.htc" % (path, f))
-				except OSError:
-					pass
-					#print 'oups', "%s/%s.htc" % (path, f)
-		self.store = index.TokyoCabinetData("%s/store.htc" % path)
-		self.inverse = index.TokyoCabinetData("%s/inverse.htc" % path)
+		if mode not in ['r', 'w', 'a']:
+			raise Exception
+		if mode == 'a':
+			self.mode = 'w'
+		else:
+			self.mode = mode
+		if mode == 'w':
+			for tc in glob.glob("%s/index_*.btc" % path):
+				os.remove(tc)
+			if not os.path.isdir(path):
+				os.makedirs(path)
+			self.store = index.tokyoCabinetData("%s/store" % path, mode)
+			self.store.vanish()
+			self.cpt = 0
+		else:
+			self.store = index.tokyoCabinetData("%s/store" % path, self.mode)
+			self.cpt = self.store.rnum() - 1
+		self.inverse = {}
+	def __len__(self):
+		return self.cpt
+	def _addInverse(self, key, value, id):
+		value = str(value)
+		self._index(key).putcat(value, struct.pack('I', id))
+	def _index(self, key):
+		if not self.inverse.has_key(key):
+			self.inverse[key] = index.tokyoCabinetSortedData("%s/inverse_%s" % (self.dir, key), self.mode)
+		return self.inverse[key]
 	def append(self, document):
 		"Add a new document"
-		if document.id == None:
-			document.id = self.cpt
+		if self.mode == 'r':
+			raise Exception
+		#if document.id == None:
+		document.id = self.cpt
 		self.store[document.id] = document
-		keys = self.inverse.keys()
-		for i in document.inverse:
-			if i not in keys: keys.append(i)
-		#print keys
-		for key in keys:
-			if self.inverse.has_key(key):
-				new = self.inverse[key]
+		
+		for key, value in document.inverse.iteritems():
+			if hasattr(value, '__iter__'):
+				for v in value:
+					self._addInverse(key, v, document.id)
 			else:
-				new = bitset.empty(self.cpt)
-			new.append(key in document.inverse)
-			self.inverse[key] = new
+				self._addInverse(key, value, document.id)
 		self.cpt += 1
 		return self.cpt -1
 	def get(self, key, value):
 		"A simple query for a key=value"
-		return self.inverse["%s:%s" % (key, value)]
+		value = str(value)
+		index = self._index(key)
+		try:
+			b = index.get(value)
+			return bitset.fromblob(self.cpt, b)
+		except KeyError:
+			return bitset.empty(self.cpt)
 	def query(self, query):
 		return Bloc(terms.parseString(query)).value(self)
 	def documents(self, bitset):
@@ -69,17 +89,43 @@ class Library:
 			data[k].append(v)
 		return data
 
+class MultiLibrary:
+	_THREAD = 4
+	_pool = True
+	def __init__(self, libraries):
+		self.libraries = libraries
+	def query(self, query):
+		bloc = Bloc(terms.parseString(query))
+		print bloc
+		if self._pool:
+			m = Pool(processes=self._THREAD).map
+		else:
+			m = map
+		def _map(args):
+			ret
+			size, data = args
+			
+			return bloc.value(lib)
+		class Iterator:
+			def __init__(self, libraries):
+				self.libraries = libraries
+			def __iter__(self):
+				for lib in self.libraries:
+					yield lib.freeze()
+		tas = m(_map , Iterator(self.libraries))
+		return tas
+
 class Document:
 	def __init__(self, id = None, **kargs):
 		self.id = id
 		self.data = {}
-		self.inverse = []
+		self.inverse = {}
 		for key, value in kargs.iteritems():
 			self.set(key, value)
 	def set(self, key, value, inverse=True, store=True, filter = _filter.lower, lotOfValues=False):
 		if filter != None:
 			value = filter(value)
-		if '__iter__' in dir(value):
+		if hasattr(value, '__iter__'):
 			for v in value:
 				self.set(key, v, inverse, store)
 			return
@@ -91,13 +137,18 @@ class Document:
 			else:
 				self.data[key] = value
 		if inverse and value != None:
-			self.inverse.append("%s:%s" % (key, value))
+			if key in self.inverse:
+				if type(self.inverse[key]) != 'list':
+					self.inverse[key] = [self.inverse[key]]
+				self.inverse[key].append(value)
+			else:
+				self.inverse[key] = value
 	def __setitem__(self, key, value):
 		self.set(key, value, True, True)
 	def __getitem__(self, key):
 		return self.data[key]
 	def __repr__(self):
-		return "<Document #%s %s %s>" % (self.id, self.data, self.inverse)
+		return "<Document #%s %s>" % (self.id, self.data)
 
 if __name__ == '__main__':
 	datas = [
@@ -110,14 +161,30 @@ if __name__ == '__main__':
 		'score': 42}
 	]
 	import unittest
+	import random
+
+	"""
+	class LibraryTest(unittest.TestCase):
+		def testMulti(self):
+			libraries = []
+			for a in range(4):
+				print a
+				library = Library('/tmp/index_%i.test' % a, 'w')
+				for b in range(10):
+					document = Document(value=b, name=random.choice(('Pim', 'Pam', 'Poum')))
+					print '\t',b, document
+					library.append(document)
+				libraries.append(library)
+			multi = MultiLibrary(libraries)
+			print multi.query('name:pim')
+"""
 	class DocumentTest(unittest.TestCase):
 		def setUp(self):
-			self.l = Library('/tmp/index.test', True)
+			self.l = Library('/tmp/index.test', 'w')
 			for data in datas:
 				d = Document()
 				for k,v in data.iteritems():
 					d[k] = v
-				#print d
 				self.l.append(d)
 		def testKargs(self):
 			d = Document(name='Bob', score=42)
