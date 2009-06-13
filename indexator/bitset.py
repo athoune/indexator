@@ -12,7 +12,7 @@ import random as _random
 import time
 from multiprocessing import Pool
 
-__all__ = ['empty', 'Bitset', 'random']
+__all__ = ['empty', 'Bitset', 'random', 'microwave']
 
 
 class WrongSizeException(Exception):
@@ -114,6 +114,19 @@ A bitset is an array of boolean wich implements all boolean algebra operations.
 		return self._map(other, _xor)
 	def __neg__(self):
 		return self._map(None, _neg)
+	def __setitem__(self, key, value):
+		if key > self._size:
+			raise KeyError
+		nbloc = key // self._WORD
+		n = key % self._WORD
+		if value:
+			self._data[nbloc] |= (1 << n)
+		else:
+			self._data[nbloc] &= ~(1 << n)
+	def __getitem__(self, key):
+		if key > self._size:
+			raise KeyError
+		return  self._data[key // self._WORD] & (1 << (key % self._WORD))
 	def cardinality(self):
 		total = 0
 		for i in self._data:
@@ -177,11 +190,40 @@ if __name__ == '__main__':
 	class BitSetTest(unittest.TestCase):
 		def setUp(self):
 			self.b = BitSet([True, True, False])
+		def testPickle(self):
+			import cPickle
+			self.assertEquals(self.b, cPickle.loads(cPickle.dumps(self.b)))
 		def testIterator(self):
 			i = BitsetIterator(random(42))
 			for a in i:
 				pass
 				#print a
+		def testGet(self):
+			#for a in range(len(self.b)):
+			#	print a, self.b[a]
+			#print self.b._data[0]
+			self.assert_(not self.b[0])
+			self.assert_(self.b[1])
+			self.assert_(self.b[2])
+		def testSet(self):
+			b = BitSet([True, True, False])
+			try:
+				b[42] = True
+				self.fail()
+			except KeyError:
+				pass
+				
+			b[1] = True
+			self.assertEqual(BitSet([True, True, False]), b)
+			b = BitSet([True, False, False])
+			b[1] = True
+			self.assertEqual(BitSet([True, True, False]), b)
+			b[0] = False
+			self.assertEqual(BitSet([True, True, False]), b)
+			b[0] = True
+			self.assertEqual(BitSet([True, True, True]), b)
+			b[2] = False
+			self.assertEqual(BitSet([False, True, True]), b)
 		def testNot(self):
 			self.assertEqual(BitSet([False, False, True]), - self.b)
 		def testAppend(self):
