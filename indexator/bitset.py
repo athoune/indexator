@@ -11,8 +11,10 @@ __author__ = "Mathieu Lecarme <mathieu@garambrogne.net>"
 import random as _random
 import time
 from multiprocessing import Pool
+from cStringIO import StringIO
+import struct
 
-__all__ = ['empty', 'Bitset', 'random', 'microwave']
+__all__ = ['empty', 'Bitset', 'random', 'fromids', 'fromblob']
 
 
 class WrongSizeException(Exception):
@@ -38,6 +40,21 @@ def random(n=1):
 	b._size = n * b._WORD
 	for a in range(n):
 		b._data.append(_random.getrandbits(b._WORD))
+	return b
+
+def fromids(size, ids):
+	b = empty(size)
+	for id in ids:
+		b[id] = True
+	return b
+
+def fromblob(size, blob):
+	b = empty(size)
+	buffer = StringIO(blob)
+	while True:
+		bloc = buffer.read(4)
+		if bloc == "": break
+		b[struct.unpack('I', bloc)[0]] = True
 	return b
 
 def _and(args):
@@ -193,6 +210,11 @@ if __name__ == '__main__':
 		def testPickle(self):
 			import cPickle
 			self.assertEquals(self.b, cPickle.loads(cPickle.dumps(self.b)))
+		def testFromids(self):
+			self.assertEquals(self.b, fromids(3, [2,1]))
+		def testFromBlob(self):
+			tmp = struct.pack('I', 2) + struct.pack('I', 1)
+			self.assertEquals(self.b, fromblob(3, tmp))
 		def testIterator(self):
 			i = BitsetIterator(random(42))
 			for a in i:
