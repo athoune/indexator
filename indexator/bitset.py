@@ -115,9 +115,7 @@ A bitset is an array of boolean wich implements all boolean algebra operations.
 	#	start, stop, step = s.indices(len(self))
 	def __iter__(self):
 		for a in range(len(self)):
-			w = self._data[a // self._WORD]
-			aa = (len(self) - a -1) % self._WORD
-			yield bool(w  & (1 << aa))
+			yield self[a]
 	def __len__(self):
 		return int(self._size)
 	def __eq__(self, other):
@@ -143,7 +141,7 @@ A bitset is an array of boolean wich implements all boolean algebra operations.
 	def __getitem__(self, key):
 		if key > self._size:
 			raise KeyError
-		return  self._data[key // self._WORD] & (1 << (key % self._WORD))
+		return  bool(self._data[len(self._data) - (key // self._WORD) - 1] & (1 << (key % self._WORD)))
 	def cardinality(self):
 		total = 0
 		for i in self._data:
@@ -246,6 +244,10 @@ if __name__ == '__main__':
 			self.assertEqual(BitSet([True, True, True]), b)
 			b[2] = False
 			self.assertEqual(BitSet([False, True, True]), b)
+			b = empty(3)
+			self.assertEqual(0, b._data[0])
+			b[2] = True
+			self.assertEqual(4, b._data[0])
 		def testNot(self):
 			self.assertEqual(BitSet([False, False, True]), - self.b)
 		def testAppend(self):
@@ -275,21 +277,22 @@ if __name__ == '__main__':
 		def testXor(self):
 			self.assertEqual(BitSet([False, True, True]), self.b ^ BitSet([True,False,True]))
 		def testSimpleIter(self):
-			z = [False, True, False]
+			z = [False, True, True]
 			b = BitSet(z)
-			self.assertEqual(1, b.cardinality())
+			self.assertEqual(2, b.cardinality())
 			self.assertEqual(3, len(b))
-			cpt = 0
+			cpt = 2
 			for a in b:
 				#print z[cpt], a
 				self.assertEqual(z[cpt], a)
-				cpt += 1
+				cpt -= 1
 		def testIter(self):
-			b = random(42)
+			bit = random(42)
 			tas = []
-			for a in b:
-				tas.append(a)
-			self.assertEqual(b, BitSet(tas))
+			for bool in bit:
+				tas.append(bool)
+			tas.reverse()
+			self.assertEqual(bit, BitSet(tas))
 		def testResults(self):
-			self.assertEquals(set([0,1]), self.b.results())
+			self.assertEquals(set([2,1]), self.b.results())
 	unittest.main()
