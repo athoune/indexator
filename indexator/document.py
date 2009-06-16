@@ -18,7 +18,7 @@ import bitset
 import filter as _filter
 import serializator
 
-from parser import terms, Bloc
+from parser import Query, value
 
 #[TODO] gerer les listes comme des strings de long long, un add fait un append directement dans TC
 #[TODO] gere les index inverses comme des Btrees, pour permettre les > < et [ .. ]. Encodage des clefs, number, date, qui reste triable
@@ -141,7 +141,7 @@ class Library:
 		self.cache[cachekey] = v
 		return v
 	def query(self, query):
-		return Bloc(terms.parseString(query)).value(self)
+		return value(Query(query),self)
 	def documents(self, bitset):
 		"An iterator wich fetch all document in a bitset"
 		for key in bitset.results():

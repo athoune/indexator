@@ -8,88 +8,96 @@ __author__ = "Mathieu Lecarme <mathieu@garambrogne.net>"
 
 from pyparsing import *
 
-__all__ = ['terms', 'Word', 'Operator', 'Bloc', 'Not']
+__all__ = ['Query', 'value']
 
-# simple tokens
-simple = Word(alphanums)
-quoted = dblQuotedString.setParseAction(removeQuotes)
-single = simple | quoted
-special = Combine(Word(alphas) + ":" + single).setParseAction(lambda t: Word(t[0]))
+def defaultParser():
+	# simple tokens
+	simple = Word(alphanums)
+	quoted = dblQuotedString.setParseAction(removeQuotes)
+	single = (simple | quoted).setResultsName('value')
+	word = Group(Word(alphas).setResultsName('field') + Suppress(":") + single).setResultsName('word')
 
-# boolean operators
-operator = (CaselessLiteral("or") | CaselessLiteral("and") | CaselessLiteral("xor")).setParseAction(lambda t: Operator(t[0]))
+	expression = Forward()
+	unit = Forward()
 
-# recursive parenthetical groups
-terms = Forward()
-parenthetical = Group(Suppress("(") + Group(terms) + Suppress(")")).setParseAction(lambda t: Bloc(t))
+	# Parentheses can enclose (group) any expression
+	parenthetical = Group((Suppress("(") + expression + Suppress(")"))).setResultsName('group')
 
-# negative terms
-negative = Group(Suppress(CaselessLiteral("not")) + (special | parenthetical)).setParseAction(lambda t: Not(t))
+	operatorAnd = Group(Suppress(CaselessLiteral("and")) + expression).setResultsName('and')
+	operatorOr = Group(Suppress(CaselessLiteral("or")) + expression).setResultsName('or')
+	operatorXor = Group(Suppress(CaselessLiteral("xor")) + expression).setResultsName('xor')
 
-# bring it all together!
-term = special | parenthetical | negative 
-terms << term + ZeroOrMore(operator + terms)
-query = OneOrMore(terms)# + StringEnd()
+	operator = ( operatorAnd | operatorOr | operatorXor )
 
-class Token:
-	"Abstract class for representation"
-	def __repr__(self):
-		return str(self)
-class Word(Token):
-	def __init__(self, s):
-		data = s.split(':')
-		self.field = data[0]
-		self.data = data[1]
-	def value(self, library):
-		return library.get(self.field, self.data)
-	def __str__(self):
-		return '<%s:%s>' % (self.field, self.data)
-class Operator(Token):
-	def __init__(self, s):
-		self.action = s
-	def __str__(self):
-		return '<%s>' % self.action
-class Bloc(Token):
-	def __init__(self, values):
-		self.values = values
-	def __str__(self):
-		return '(%s)' % self.values
-	def value(self, library):
-		value = self.values[0].value(library)
-		action = None
-		for token in self.values[1:]:
-			#print type(token), token
-			if action == None:
-				action = token.action
-			else:
-				#print value, action, token
-				if action == 'or':
-					value = value | token.value(library)
-				if action == 'and':
-					value = value & token.value(library)
-				if action == 'xor':
-					value = value ^ token.value(library)
-				action == None
-		return value
-class Not(Bloc):
-	def __str__(self):
-		return 'not(%s)' % self.values
-	def value(self, library):
-		return - Bloc.value(library)
+	operatorNot = Group(Suppress(CaselessLiteral("not")) + unit ).setResultsName('not')
+
+	unit << (word | parenthetical | operatorNot)
+
+	expression << (unit  + ZeroOrMore(operator))
+	#query = OneOrMore(terms)# + StringEnd()
+	return Group(expression).setResultsName("query") + StringEnd()
+
+_defaultParser = defaultParser()
+def Query(query):
+	global _defaultParser
+	return _defaultParser.parseString(query)[0]
+
+def value(nodes, library):
+	#print 'name', nodes.getName()
+	if nodes.getName() in ['query','group']:
+		_value = value(nodes[0], library)
+		for node in nodes[1:]:
+			#print '\t', node.getName(), node[0].getName()
+			if node.getName() == 'or':
+				_value |= value(node[0], library)
+			if node.getName() == 'and':
+				_value &= value(node[0], library)
+			if node.getName() == 'xor':
+				_value ^= value(node[0], library)
+		return _value
+	if 'word' == nodes.getName():
+		return library.get(nodes.field, nodes.value)
+	if 'not' == nodes.getName():
+		return - value(nodes[0], library)
 
 if __name__ == '__main__':
-	t =  terms.parseString("""not palteform:winxp or (code:200 and not browser:firefox)""")
-	print t
-	#print t.dump()
-	indent = 0
-	def eat(t):
-		if isinstance(t,ParseResults):
-			#print t.getName()
-			global indent
-			indent += 1
-			for a in t:
-				eat(a)
-			indent -= 1
-		else:
-			print indent * "\t", t
-	eat(t)
+	import unittest
+	from document import Document, Library
+
+	class QueryTest(unittest.TestCase):
+		def setUp(self):
+			self.library = Library('/tmp/parser.test', 'w')
+			self.library.append(Document(code="200", plateform="linux", browser="khtml"))
+			self.library.append(Document(code="200", plateform="winxp", browser="ie"))
+		def testSimple(self):
+			query = Query('plateform:winxp')
+			self.assertEquals(set([1]), value(query, self.library).results())
+		def testNot(self):
+			query = Query('not plateform:winxp')
+			self.assertEquals(set([0]), value(query, self.library).results())
+		def testOr(self):
+			query = Query(' plateform:winxp or plateform:linux')
+			self.assertEquals(set([0, 1]), value(query, self.library).results())
+		def testDummy(self):
+			query = Query('not (plateform:winxp)')
+			self.assertEquals(set([0]), value(query, self.library).results())
+		def testOr(self):
+			try:
+				query = Query(" or toto:machin")
+			except ParseException:
+				pass
+			query = Query(' plateform:winxp or plateform:linux')
+			#print query.asXML()
+		def testAll(self):
+			q = """
+not plateform:winxp
+or (
+	code:200 
+	and  browser:firefox
+)"""
+			query = Query(q)
+			#print query.asXML()
+			#print value(query, self.library)
+			self.assertEquals(set([0]), value(query, self.library).results())
+	
+	unittest.main()
