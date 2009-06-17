@@ -23,6 +23,16 @@ class IndexTest(unittest.TestCase):
 		i = Index(m)
 		#for k in i:
 		#	print k
+	def testRange(self):
+		d = tokyoCabinetSortedData('/tmp/span', 'w')
+		cpt = 0
+		for fruit in ['carotte', 'pomme', 'banane', 'coing']:
+			d[fruit] = cpt
+			cpt += 1
+		self.assertEquals(['coing'], d.rangefwm('co', 50))
+		self.assertEquals([], d.rangefwm('a', 50))
+		self.assertEquals(['banane'], d.range('a', True, None, True, 1))
+		self.assertEquals(['banane', 'carotte'], d.range('a', True, 'coing', False, 50))
 
 if __name__ == '__main__':
 	unittest.main()
