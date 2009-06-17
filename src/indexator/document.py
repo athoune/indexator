@@ -12,7 +12,6 @@ import glob
 import time
 from cStringIO import StringIO
 
-
 import index
 import bitset
 import filter as _filter
@@ -55,6 +54,7 @@ class RAMCache:
 		self.cache.optimize()
 
 class Library:
+	MAX_START = 256
 	def __init__(self, path, mode = 'r'):
 		self.dir = path
 		if mode not in ['r', 'w', 'a']:
@@ -137,6 +137,20 @@ class Library:
 			v = bitset.empty(self.cpt)
 		self.cache[cachekey] = v
 		return v
+	def mget(self, key, values):
+		"multiple get"
+		bit = self.get(key, values[0])
+		for value in values[1:]:
+			bit |= self.get(key, value)
+		return bit
+	def start(self, key, start):
+		"start with"
+		index = self._index(key)
+		return self.mget(key,index.rangefwm(start, self.MAX_START))
+	def range(self, key, start, end):
+		"from to"
+		index = self._index(key)
+		return self.mget(key, index.range(start, True, end, True, self.MAX_START))
 	def query(self, query):
 		return value(Query(query),self)
 	def documents(self, bitset):

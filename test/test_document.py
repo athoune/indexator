@@ -63,6 +63,10 @@ class DocumentTest(unittest.TestCase):
 		self.assertEquals(set([1]), b.results())
 		for doc in self.l.documents(b):
 			self.assertEquals('casimir',doc['nom'])
+	def testStart(self):
+		self.assertEquals(set([2]), self.l.start('nom', 'an').results())
+	def testRange(self):
+		self.assertEquals(set([0,2]), self.l.range('nom', 'adrien', 'brigitte').results())
 
 if __name__ == '__main__':
 	unittest.main()
