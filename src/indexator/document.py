@@ -20,9 +20,6 @@ import serializator
 
 from parser import Query, value
 
-#[TODO] gerer les listes comme des strings de long long, un add fait un append directement dans TC
-#[TODO] gere les index inverses comme des Btrees, pour permettre les > < et [ .. ]. Encodage des clefs, number, date, qui reste triable
-
 class TokyoCache:
 	"Persistant cache"
 	def __init__(self, path):
