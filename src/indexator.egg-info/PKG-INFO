@@ -1,0 +1,19 @@
+Metadata-Version: 1.0
+Name: indexator
+Version: 0.1
+Summary: Index
+Home-page: http://github.com/athoune/indexator/tree/master
+Author: Mathieu Lecarme
+Author-email: mathieu@garambrogne.net
+License: LGPL License
+Description: UNKNOWN
+Platform: UNKNOWN
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python
+Classifier: Development Status :: 1 - Alpha
+Classifier: Intended Audience :: Developers
+Classifier: Natural Language :: French
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 2.6
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Classifier: Topic :: Text Processing :: Indexing

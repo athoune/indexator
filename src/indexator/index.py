@@ -100,31 +100,3 @@ if __name__ == '__main__':
 				print ".",
 			if i % 100 == 0:
 				print " ", i, i / (time.time() - chrono), 'line/second'
-	else:
-		import unittest
-
-		class DataTest(unittest.TestCase):
-			def testGetSet(self):
-				for cabinet in [tokyoCabinetData, tokyoCabinetSortedData]:
-					d = cabinet('/tmp/tc', 'w')
-					data = [1,2,3,"a"]
-					d[42] = data
-					d.close()
-					d = cabinet('/tmp/tc', 'r')
-					self.assert_(data, d[42])
-					self.assert_(1, d)
-					print d
-	
-		class IndexTest(unittest.TestCase):
-			def setUp(self):
-				pass
-			def testInit(self):
-				m = {'Name' : 'Bob',
-				'Sexe' : True,
-				'tags' : ['sponge', 'sea'],
-				}
-				i = Index(m)
-				#for k in i:
-				#	print k
-
-		unittest.main()
