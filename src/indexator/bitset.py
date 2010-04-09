@@ -9,7 +9,6 @@ A bitset can be stored and retrieved, compressed or not.
 __author__ = "Mathieu Lecarme <mathieu@garambrogne.net>"
 
 import random as _random
-import time
 from multiprocessing import Pool
 from cStringIO import StringIO
 import struct
