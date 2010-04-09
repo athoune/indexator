@@ -63,7 +63,8 @@ def query(size):
 	cpt = 0
 	#bloc = Bloc(terms.parseString(" plateform:winxp and code:200 and browser:firefox"))
 	global library
-	for a in range(1000):
+	#library.warmup()
+	for a in range(100):
 		bit =  - library.get('plateform', 'winxp') & library.get('code', '200') & (library.get('browser', 'firefox') | library.get('browser', 'safari'))
 		cpt += 1
 	print bit.cardinality(), 'matches on', len(library), 'lines'
@@ -80,10 +81,10 @@ parser.add_option("-a", "--action", dest="action", help="actions : " + str(actio
 (options, args) = parser.parse_args()
 
 if options.log != None:
-	library = Library('/tmp/apache.test', 'w')
+	library = Library('./apache.test', 'w')
 	cProfile.run('parse(options.log, options.size)', 'parse.prof')
 else:
-	library = Library('/tmp/apache.test', 'r')
+	library = Library('./apache.test', 'r')
 if options.action != None:
 	if options.action in actions:
 		library = Library('/tmp/apache.test', 'r')
