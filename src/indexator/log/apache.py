@@ -50,13 +50,24 @@ class Combined:
 		}
 		return dico
 
+class Filter_by_code(object):
+	def __init__(self, codes = [404]):
+		self.codes = codes
+	def __call__(self, iterator):
+		for line in iterator:
+			if int(line.split(' ')[8]) in self.codes:
+				yield line
+
 if __name__ == '__main__':
 	import sys
 	if len(sys.argv) > 1:
 		c = Combined()
 		f = file(sys.argv[1], 'r')
-		for line in f:
-			print c.parse(line)
+		trouble = Filter_by_code([404, 500, 403])
+		print trouble
+		for line in trouble(f):
+			print line
+			#print c.parse(line)
 	else:
 		import unittest
 		class ApacheTest(unittest.TestCase):
