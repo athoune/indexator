@@ -15,7 +15,11 @@ def defaultParser():
 	simple = Word(alphanums)
 	quoted = dblQuotedString.setParseAction(removeQuotes)
 	single = (simple | quoted).setResultsName('value')
-	word = Group(Word(alphas).setResultsName('field') + Suppress(":") + single).setResultsName('word')
+	prefix = Group(Combine(simple + Suppress('*'))).setResultsName('prefix')
+	print prefix.parseString('  bob*').asXML()
+	
+	range = Group(simple + Suppress("..") + simple).setResultsName("Range")
+	word = Group(Word(alphas + '_').setResultsName('field') + Suppress(":") + (single | prefix | range)).setResultsName('word')
 
 	expression = Forward()
 	unit = Forward()
@@ -59,3 +63,6 @@ def value(nodes, library):
 		return library.get(nodes.field, nodes.value)
 	if 'not' == nodes.getName():
 		return - value(nodes[0], library)
+if __name__ == '__main__':
+	print _defaultParser.parseString(""" name:bob*
+	""")
