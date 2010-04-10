@@ -20,9 +20,9 @@ def _clean(txt):
 	return txt[1:-1]
 
 class IP2CC(object):
-	def __init__(self, dbname):
-		self.db = sqlite3.connect(dbname)
-		self.cursor = d.cursor()
+	def __init__(self, dbname='ip'):
+		self.db = sqlite3.connect("%s.db" % dbname)
+		self.cursor = self.db.cursor()
 	def feed(self, csv):
 		self.cursor.execute('CREATE TABLE ip (start NUMERIC, end NUMERIC, country TEXT)')
 		self.cursor.execute('CREATE INDEX idx_start ON ip(start)')
@@ -39,11 +39,11 @@ class IP2CC(object):
 import pytc
 
 class IP2CC_tc(object):
-	def __init__(self, dbname):
-		self.dbname = dbname
+	def __init__(self, dbname='ip'):
+		self.dbname = "%s.bdb" % dbname
 		self.db = pytc.BDB()
 		try:
-			self.db.open(dbname, pytc.BDBOREADER)
+			self.db.open(self.dbname, pytc.BDBOREADER)
 		except pytc.Error:
 			pass
 	def feed(self, csv):
@@ -65,7 +65,7 @@ class IP2CC_tc(object):
 	
 if __name__ == '__main__':
 	import sys
-	ip2cc = IP2CC_tc('ip.bdb')
+	ip2cc = IP2CC_tc()
 	if len(sys.argv) > 1:
 		print ip2cc.where(sys.argv[1])
 	else:
