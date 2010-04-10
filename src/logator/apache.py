@@ -62,13 +62,12 @@ class Filter_by_code(object):
 if __name__ == '__main__':
 	import sys
 	from ip2cc import IP2CC_tc as IP2CC
-	ip2cc = IP2CC('ip.bdb')
+	ip2cc = IP2CC()
 	socket.setdefaulttimeout(2)
 	if len(sys.argv) > 1:
 		c = Combined()
 		f = file(sys.argv[1], 'r')
 		trouble = Filter_by_code([500, 404, 403])
-		print trouble
 		for line in trouble(f):
 			l = line[:-1].split(' ')
 			where = ip2cc.where(l[0])
@@ -76,10 +75,10 @@ if __name__ == '__main__':
 				print where[-1],
 			else:
 				print l[0],
-			try:
-				print socket.gethostbyaddr(l[0])[0],
-			except socket.herror:
-				print '?',
+			#try:
+			#	print socket.gethostbyaddr(l[0])[0],
+			#except socket.herror:
+			#	print '?',
 			print line[:-1]
 			#print c.parse(line)
 	else:
